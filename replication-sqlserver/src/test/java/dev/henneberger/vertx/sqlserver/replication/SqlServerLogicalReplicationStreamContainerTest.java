@@ -78,7 +78,6 @@ class SqlServerLogicalReplicationStreamContainerTest {
           if (event.getOperation() == SqlServerChangeEvent.Operation.INSERT) {
             received.complete(event);
           }
-          return io.vertx.core.Future.succeededFuture();
         },
         received::completeExceptionally
       );

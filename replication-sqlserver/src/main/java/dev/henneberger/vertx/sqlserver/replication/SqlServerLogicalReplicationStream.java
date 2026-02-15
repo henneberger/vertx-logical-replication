@@ -158,6 +158,16 @@ public class SqlServerLogicalReplicationStream implements ReplicationStream<SqlS
     return new SubscriptionRegistration(subscription, started);
   }
 
+  public SubscriptionRegistration startAndSubscribe(SqlServerChangeFilter filter,
+                                                    Handler<SqlServerChangeEvent> eventHandler,
+                                                    Handler<Throwable> errorHandler) {
+    Objects.requireNonNull(eventHandler, "eventHandler");
+    return startAndSubscribe(filter, event -> {
+      eventHandler.handle(event);
+      return Future.succeededFuture();
+    }, errorHandler);
+  }
+
   @Override
   public dev.henneberger.vertx.replication.core.AdapterMode adapterMode() {
     return dev.henneberger.vertx.replication.core.AdapterMode.POLLING;

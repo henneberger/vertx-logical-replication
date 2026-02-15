@@ -7,10 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import dev.henneberger.vertx.replication.core.ValueNormalizationMode;
 import io.vertx.core.Vertx;
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class SqlServerLogicalReplicationStreamHelpersTest {
@@ -113,5 +115,26 @@ class SqlServerLogicalReplicationStreamHelpersTest {
       stream.close();
       vertx.close();
     }
+  }
+
+  @Test
+  void providesTypedFieldAccessorsOnChangeEvent() {
+    SqlServerChangeEvent event = new SqlServerChangeEvent(
+      "dbo_orders",
+      SqlServerChangeEvent.Operation.INSERT,
+      Map.of("id", 1),
+      Map.of("id", "42", "amount", "12.34"),
+      "0x01",
+      Instant.parse("2026-02-15T20:00:00Z"),
+      Map.of()
+    );
+
+    assertEquals("42", event.string("id"));
+    assertEquals(42, event.integer("id"));
+    assertEquals(42L, event.longValue("id"));
+    assertEquals(12.34d, event.doubleValue("amount"), 0.0001d);
+    assertEquals(new BigDecimal("12.34"), event.decimal("amount"));
+    assertEquals("42", event.stringFromAfter("id"));
+    assertEquals("1", event.stringFromBefore("id"));
   }
 }

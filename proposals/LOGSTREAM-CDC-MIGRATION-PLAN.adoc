@@ -10,6 +10,7 @@ Goal: move adapters from polling-based CDC to true log-stream CDC wherever feasi
 - Added `AdapterMode` to `replication-core` and exposed `adapterMode()` on `ReplicationStream`.
 - All current adapters now declare explicit mode (`LOG_STREAM`, `POLLING`, `DB_NATIVE_CDC`).
 - `docs/index.adoc` support matrix now includes mode classification.
+- SQL Server ergonomics slice completed: typed event helpers, sync `startAndSubscribe` overload, app config and presets helpers.
 
 == Current Classification
 

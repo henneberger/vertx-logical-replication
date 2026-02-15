@@ -20,12 +20,7 @@ This file tracks only unfinished, high-impact work.
 
 == P1 (Next)
 
-1. SQL Server developer ergonomics parity
-- Add typed field helpers on `SqlServerChangeEvent` (e.g. `rowOrBefore`, `string`, `integer`, `decimal`, `doubleValue`).
-- Add sync-handler overload for `startAndSubscribe(...)`.
-- Add SQL Server app config + option presets helper.
-
-2. Remove `src-legacy-monolith` duplicates after dependency check
+1. Remove `src-legacy-monolith` duplicates after dependency check
 - Confirm no build/runtime dependency, then deprecate and remove duplicate classes.
 
 == P2 (Later)
@@ -37,3 +32,10 @@ This file tracks only unfinished, high-impact work.
 == Explicitly Not Tracked Here
 
 - Already completed fixes (for example SQL Server tuple checkpoint token and batch paging correctness improvements) are intentionally excluded.
+
+== Completed
+
+1. SQL Server developer ergonomics parity
+- Added typed field helpers on `SqlServerChangeEvent` (`rowOrBefore`, `string`, `integer`, `longValue`, `decimal`, `doubleValue`).
+- Added sync-handler overload for `startAndSubscribe(...)`.
+- Added `SqlServerReplicationAppConfig` and `SqlServerReplicationOptionPresets` with tests.
