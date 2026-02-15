@@ -50,3 +50,10 @@ This file tracks only unfinished, high-impact work.
 5. SQL Server commit timestamp enrichment
 - Enriched SQL Server CDC query with `sys.fn_cdc_map_lsn_to_time(__$start_lsn)`.
 - `SqlServerChangeEvent#commitTimestamp` is now populated from CDC metadata when available.
+
+== P2 (In Progress)
+
+1. Option validation unification
+- Added shared `OptionValidation` helper in `replication-core`.
+- Migrated validation logic for `replication-oracle`, `replication-db2`, `replication-mariadb`, and `replication-cockroachdb` options.
+- Remaining modules still using local validation helpers will be migrated incrementally.
