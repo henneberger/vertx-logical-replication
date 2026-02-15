@@ -21,11 +21,6 @@ This file tracks only unfinished, high-impact work.
 - Migrated `replication-oracle`, `replication-db2`, `replication-mariadb`, and `replication-cockroachdb` logical streams to the shared base.
 - Remaining shared-runtime rollout targets: `replication-cassandra`, `replication-scylladb`, `replication-sqlserver`, `replication-mongodb`, `replication-mysql`.
 
-== P1 (Next)
-
-1. Remove `src-legacy-monolith` duplicates after dependency check
-- Confirm no build/runtime dependency, then deprecate and remove duplicate classes.
-
 == P2 (Later)
 
 1. Unify options validation/converter patterns across modules.
@@ -49,3 +44,6 @@ This file tracks only unfinished, high-impact work.
 3. Typed startup/preflight exception
 - Added `PreflightFailedException` carrying `PreflightReport` and `ReplicationStreamState`.
 - Wired all adapters to fail preflight with this typed exception.
+
+4. Legacy monolith cleanup
+- Confirmed `src-legacy-monolith` is removed and not referenced by module builds.
