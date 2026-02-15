@@ -10,11 +10,7 @@ This file tracks only unfinished, high-impact work.
 - Add common lifecycle/retry/subscription/preflight runtime used by all adapters.
 - Goal: reduce copy/paste across `*LogicalReplicationStream` implementations.
 
-2. Introduce shared JDBC polling base
-- Migrate first: `replication-oracle`, `replication-db2`, `replication-mariadb`, `replication-cockroachdb`.
-- Goal: thin adapter wrappers with shared polling/checkpoint plumbing.
-
-3. Add adapter contract test kit and adopt it
+2. Add adapter contract test kit and adopt it
 - Validate `start`, `close`, state transitions, subscription cancellation, retry semantics.
 - Start with migrated modules from items 1-2.
 
@@ -22,8 +18,8 @@ This file tracks only unfinished, high-impact work.
 
 1. Shared runtime extraction + JDBC base rollout
 - Added `AbstractJdbcPollingReplicationStream` in `replication-core`.
-- Migrated `replication-oracle` and `replication-db2` logical streams to the shared base.
-- Remaining JDBC-family migrations: `replication-mariadb`, `replication-cockroachdb`.
+- Migrated `replication-oracle`, `replication-db2`, `replication-mariadb`, and `replication-cockroachdb` logical streams to the shared base.
+- Remaining shared-runtime rollout targets: `replication-cassandra`, `replication-scylladb`, `replication-sqlserver`, `replication-mongodb`, `replication-mysql`.
 
 == P1 (Next)
 
@@ -46,3 +42,7 @@ This file tracks only unfinished, high-impact work.
 - Added typed field helpers on `SqlServerChangeEvent` (`rowOrBefore`, `string`, `integer`, `longValue`, `decimal`, `doubleValue`).
 - Added sync-handler overload for `startAndSubscribe(...)`.
 - Added `SqlServerReplicationAppConfig` and `SqlServerReplicationOptionPresets` with tests.
+
+2. Shared JDBC polling base migration
+- Introduced `AbstractJdbcPollingReplicationStream` in `replication-core`.
+- Completed migration of `replication-oracle`, `replication-db2`, `replication-mariadb`, and `replication-cockroachdb`.

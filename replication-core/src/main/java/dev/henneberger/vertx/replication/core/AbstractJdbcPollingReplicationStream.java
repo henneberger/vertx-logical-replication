@@ -165,6 +165,9 @@ public abstract class AbstractJdbcPollingReplicationStream<E> implements Replica
   protected abstract String streamName();
   protected abstract String sourceTable();
   protected abstract String positionColumn();
+  protected String rowLimitClause() {
+    return "FETCH FIRST ? ROWS ONLY";
+  }
   protected abstract int batchSize();
   protected abstract int maxConcurrentDispatch();
   protected abstract long pollIntervalMs();
@@ -234,7 +237,7 @@ public abstract class AbstractJdbcPollingReplicationStream<E> implements Replica
       completeStart();
       long lastPosition = parsePositionToken(loadCheckpoint().orElse("0"));
       String sql = "SELECT * FROM " + sourceTable() + " WHERE " + positionColumn() + " > ?"
-        + " ORDER BY " + positionColumn() + " ASC FETCH FIRST ? ROWS ONLY";
+        + " ORDER BY " + positionColumn() + " ASC " + rowLimitClause();
 
       while (shouldRun.get()) {
         List<E> events = new ArrayList<>();
