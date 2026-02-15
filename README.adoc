@@ -2,7 +2,7 @@
 :toc: left
 :icons: font
 
-image:https://github.com/henneberger/vertx-pg-logical-replication/actions/workflows/ci.yml/badge.svg["CI and Docs",link="https://github.com/henneberger/vertx-pg-logical-replication/actions/workflows/ci.yml"]
+image:https://github.com/henneberger/vertx-logical-replication/actions/workflows/ci.yml/badge.svg["CI and Docs",link="https://github.com/henneberger/vertx-logical-replication/actions/workflows/ci.yml"]
 
 Reactive, non-blocking change data capture (CDC) and replication streams for Vert.x.
 
