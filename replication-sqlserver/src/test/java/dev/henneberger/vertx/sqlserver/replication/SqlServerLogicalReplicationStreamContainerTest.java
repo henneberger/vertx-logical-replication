@@ -93,6 +93,7 @@ class SqlServerLogicalReplicationStreamContainerTest {
         SqlServerChangeEvent event = received.get(60, TimeUnit.SECONDS);
         assertNotNull(event);
         assertEquals(SqlServerChangeEvent.Operation.INSERT, event.getOperation());
+        assertNotNull(event.getCommitTimestamp());
 
         Map<String, Object> after = event.getAfter();
         Object id = findIgnoringCase(after, "id");

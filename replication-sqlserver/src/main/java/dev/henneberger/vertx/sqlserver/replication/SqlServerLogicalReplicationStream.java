@@ -353,11 +353,13 @@ public class SqlServerLogicalReplicationStream implements ReplicationStream<SqlS
                                   SqlServerCdcPosition fromExclusive,
                                   String toLsnInclusive) throws SQLException {
     String fn = "cdc.fn_cdc_get_all_changes_" + options.getCaptureInstance();
-    String sql = "SELECT TOP " + options.getMaxBatchSize() + " * FROM " + fn + "(?, ?, 'all update old')"
-      + " WHERE (__$start_lsn > ?)"
-      + " OR (__$start_lsn = ? AND __$seqval > ?)"
-      + " OR (__$start_lsn = ? AND __$seqval = ? AND __$operation > ?)"
-      + " ORDER BY __$start_lsn, __$seqval, __$operation";
+    String sql = "SELECT TOP " + options.getMaxBatchSize()
+      + " c.*, sys.fn_cdc_map_lsn_to_time(c.__$start_lsn) AS __$commit_ts"
+      + " FROM " + fn + "(?, ?, 'all update old') c"
+      + " WHERE (c.__$start_lsn > ?)"
+      + " OR (c.__$start_lsn = ? AND c.__$seqval > ?)"
+      + " OR (c.__$start_lsn = ? AND c.__$seqval = ? AND c.__$operation > ?)"
+      + " ORDER BY c.__$start_lsn, c.__$seqval, c.__$operation";
 
     List<SqlServerChangeEvent> events = new ArrayList<>();
     SqlServerCdcPosition lastPosition = fromExclusive;
@@ -399,7 +401,7 @@ public class SqlServerLogicalReplicationStream implements ReplicationStream<SqlS
     metadata.put("operationCode", opCode);
     metadata.put("seqVal", lsnToHex(rs.getBytes("__$seqval")));
 
-    Instant commitTs = null;
+    Instant commitTs = toInstant(rs.getObject("__$commit_ts"));
     String lsn = lsnToHex(rs.getBytes("__$start_lsn"));
 
     return new SqlServerChangeEvent(
@@ -411,6 +413,26 @@ public class SqlServerLogicalReplicationStream implements ReplicationStream<SqlS
       commitTs,
       metadata
     );
+  }
+
+  private static Instant toInstant(Object raw) {
+    if (raw == null) {
+      return null;
+    }
+    if (raw instanceof Instant) {
+      return (Instant) raw;
+    }
+    if (raw instanceof Timestamp) {
+      return ((Timestamp) raw).toInstant();
+    }
+    if (raw instanceof String) {
+      try {
+        return Instant.parse((String) raw);
+      } catch (Exception ignore) {
+        return null;
+      }
+    }
+    return null;
   }
 
   private SqlServerCdcPosition positionFromRow(ResultSet rs) throws SQLException {

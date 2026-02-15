@@ -13,6 +13,7 @@ Goal: move adapters from polling-based CDC to true log-stream CDC wherever feasi
 - SQL Server ergonomics slice completed: typed event helpers, sync `startAndSubscribe` overload, app config and presets helpers.
 - Shared JDBC polling runtime extracted to `replication-core` and adopted by Oracle/Db2/MariaDB/CockroachDB adapters.
 - Added typed preflight failure exception (`PreflightFailedException`) carrying report/state across adapters.
+- SQL Server events now enrich `commitTimestamp` via `sys.fn_cdc_map_lsn_to_time(__$start_lsn)` when available.
 
 == Current Classification
 

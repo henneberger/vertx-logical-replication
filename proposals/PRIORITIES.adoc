@@ -24,7 +24,6 @@ This file tracks only unfinished, high-impact work.
 == P2 (Later)
 
 1. Unify options validation/converter patterns across modules.
-2. Populate SQL Server commit timestamp when feasible.
 
 == Explicitly Not Tracked Here
 
@@ -47,3 +46,7 @@ This file tracks only unfinished, high-impact work.
 
 4. Legacy monolith cleanup
 - Confirmed `src-legacy-monolith` is removed and not referenced by module builds.
+
+5. SQL Server commit timestamp enrichment
+- Enriched SQL Server CDC query with `sys.fn_cdc_map_lsn_to_time(__$start_lsn)`.
+- `SqlServerChangeEvent#commitTimestamp` is now populated from CDC metadata when available.
