@@ -130,7 +130,7 @@ mvn -Pdocs -DskipTests package
 == Documentation
 
 - Local docs source: `docs/index.adoc`
-- Published docs: `https://henneberger.github.io/vertx-pg-logical-replication/`
+- Published docs: `http://vertx-logical-replication.henneberger.dev/`
 - Additional references:
   - link:BUILDING.md[Building Guide]
   - link:CONTRIBUTING.md[Contributing Guide]
