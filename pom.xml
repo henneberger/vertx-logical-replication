@@ -123,6 +123,12 @@
         <plugin>
           <artifactId>maven-javadoc-plugin</artifactId>
           <version>${maven.javadoc.plugin.version}</version>
+          <configuration>
+            <doclint>none</doclint>
+            <sourceFileIncludes>
+              <sourceFileInclude>dev/**/*.java</sourceFileInclude>
+            </sourceFileIncludes>
+          </configuration>
           <executions>
             <execution>
               <id>attach-javadocs</id>
