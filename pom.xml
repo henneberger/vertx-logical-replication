@@ -37,8 +37,8 @@
   </developers>
 
   <scm>
-    <connection>scm:git:git://github.com/henneberger/vertx-logical-replication.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/henneberger/vertx-logical-replication.git</developerConnection>
+    <connection>scm:git:https://github.com/henneberger/vertx-logical-replication.git</connection>
+    <developerConnection>scm:git:https://github.com/henneberger/vertx-logical-replication.git</developerConnection>
     <url>https://github.com/henneberger/vertx-logical-replication</url>
     <tag>HEAD</tag>
   </scm>
