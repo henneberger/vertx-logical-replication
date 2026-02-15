@@ -18,6 +18,13 @@ This file tracks only unfinished, high-impact work.
 - Validate `start`, `close`, state transitions, subscription cancellation, retry semantics.
 - Start with migrated modules from items 1-2.
 
+== In Progress
+
+1. Shared runtime extraction + JDBC base rollout
+- Added `AbstractJdbcPollingReplicationStream` in `replication-core`.
+- Migrated `replication-oracle` and `replication-db2` logical streams to the shared base.
+- Remaining JDBC-family migrations: `replication-mariadb`, `replication-cockroachdb`.
+
 == P1 (Next)
 
 1. Remove `src-legacy-monolith` duplicates after dependency check

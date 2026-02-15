@@ -11,6 +11,7 @@ Goal: move adapters from polling-based CDC to true log-stream CDC wherever feasi
 - All current adapters now declare explicit mode (`LOG_STREAM`, `POLLING`, `DB_NATIVE_CDC`).
 - `docs/index.adoc` support matrix now includes mode classification.
 - SQL Server ergonomics slice completed: typed event helpers, sync `startAndSubscribe` overload, app config and presets helpers.
+- Shared JDBC polling runtime extracted to `replication-core` and adopted by Oracle/Db2 adapters.
 
 == Current Classification
 
