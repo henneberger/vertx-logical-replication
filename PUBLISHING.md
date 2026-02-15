@@ -1,10 +1,11 @@
 # Publishing
 
-## Maven Central via GitHub Actions
+## Maven Central via GitHub Actions + Maven Release Plugin
 
 This repository publishes to Maven Central using:
 
-- workflow: `.github/workflows/release-central.yml`
+- workflow: `.github/workflows/release-central.yml` (manual trigger)
+- `maven-release-plugin` (`release:prepare`, `release:perform`)
 - Maven profile: `central-release` in the root `pom.xml`
 - Sonatype Central Publisher plugin
 
@@ -23,18 +24,14 @@ This repository publishes to Maven Central using:
 
 ## Release checklist
 
-1. Set project version to a non-`SNAPSHOT` release in `pom.xml`.
+1. Ensure `main` has the desired next `-SNAPSHOT` version (for example `0.3.1-SNAPSHOT`).
 2. Verify project metadata is present and correct (`licenses`, `developers`, `scm`, `url`).
 3. Run full verification locally:
    ```bash
    mvn clean verify
    ```
-4. Merge release changes to `main`.
-5. Trigger publish either by:
-   - publishing a GitHub Release targeting `main`, or
-   - running `Release to Maven Central` via `workflow_dispatch`.
-
-The workflow fails if `project.version` is still `-SNAPSHOT`.
+4. Trigger `Release to Maven Central` in GitHub Actions (`workflow_dispatch`).
+5. The workflow runs `release:prepare` (creates release commit + tag) and `release:perform` (deploys signed artifacts to Central), then commits the next development `-SNAPSHOT` version back to `main`.
 
 ## Produced artifacts
 

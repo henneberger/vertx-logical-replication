@@ -2,23 +2,22 @@ name: Release to Maven Central
 
 on:
   workflow_dispatch:
-  release:
-    types: [published]
 
 concurrency:
   group: release-central-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  publish:
-    if: github.event_name == 'workflow_dispatch' || github.event.release.target_commitish == 'main'
+  release:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17 + Maven Central + GPG
         uses: actions/setup-java@v4
@@ -32,18 +31,15 @@ jobs:
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
-      - name: Validate release version is non-SNAPSHOT
+      - name: Configure git identity
         run: |
-          VERSION=$(mvn -q -N -DforceStdout help:evaluate -Dexpression=project.version | tail -n 1 | tr -d '\r')
-          echo "Project version: ${VERSION}"
-          if [[ "${VERSION}" == *-SNAPSHOT ]]; then
-            echo "Refusing to publish SNAPSHOT version to Maven Central."
-            exit 1
-          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Publish to Maven Central
+      - name: Maven release (prepare + perform)
         env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
-        run: mvn -B -ntp -Pcentral-release -DskipTests deploy
+        run: |
+          mvn -B -ntp release:clean release:prepare release:perform

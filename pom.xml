@@ -79,6 +79,7 @@
     <maven.assembly.plugin.version>3.7.1</maven.assembly.plugin.version>
     <maven.javadoc.plugin.version>3.12.0</maven.javadoc.plugin.version>
     <maven.gpg.plugin.version>3.2.8</maven.gpg.plugin.version>
+    <maven.release.plugin.version>3.1.1</maven.release.plugin.version>
     <central.publishing.maven.plugin.version>0.9.0</central.publishing.maven.plugin.version>
   </properties>
 
@@ -132,6 +133,18 @@
               </goals>
             </execution>
           </executions>
+        </plugin>
+        <plugin>
+          <artifactId>maven-release-plugin</artifactId>
+          <version>${maven.release.plugin.version}</version>
+          <configuration>
+            <tagNameFormat>v@{project.version}</tagNameFormat>
+            <autoVersionSubmodules>true</autoVersionSubmodules>
+            <releaseProfiles>central-release</releaseProfiles>
+            <scmCommentPrefix>[release] </scmCommentPrefix>
+            <preparationGoals>clean verify</preparationGoals>
+            <arguments>-DskipTests</arguments>
+          </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
