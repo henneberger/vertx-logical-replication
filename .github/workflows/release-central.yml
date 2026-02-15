@@ -39,6 +39,18 @@ jobs:
           git config --global url."https://x-access-token:${{ github.token }}@github.com/".insteadOf "git@github.com:"
           git config --global url."https://x-access-token:${{ github.token }}@github.com/".insteadOf "ssh://git@github.com/"
 
+      - name: Verify signing key is publicly discoverable
+        run: |
+          SIGNING_FPR="$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/ { print $10; exit }')"
+          if [ -z "${SIGNING_FPR}" ]; then
+            echo "::error::No GPG secret key loaded from MAVEN_GPG_PRIVATE_KEY."
+            exit 1
+          fi
+          echo "Using signing key fingerprint: ${SIGNING_FPR}"
+          curl --fail --silent --show-error \
+            "https://keys.openpgp.org/vks/v1/by-fingerprint/${SIGNING_FPR}" \
+            > /dev/null
+
       - name: Maven release (prepare + perform)
         env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
