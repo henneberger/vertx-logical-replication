@@ -1,0 +1,67 @@
+== PostgreSQL
+
+The PostgreSQL connector consumes logical replication messages produced by the `wal2json` plugin and maps them to `PostgresChangeEvent`.
+
+=== Requirements
+
+* PostgreSQL logical replication enabled.
+* `wal2json` plugin installed and available to the server.
+* Replication role with privileges to create/use the slot.
+
+Typical PostgreSQL settings:
+
+[source]
+----
+wal_level=logical
+max_replication_slots>=1
+max_wal_senders>=1
+----
+
+=== Creating options
+
+[source,java]
+----
+PostgresReplicationOptions options = new PostgresReplicationOptions()
+  .setHost("localhost")
+  .setPort(5432)
+  .setDatabase("app")
+  .setUser("app")
+  .setPasswordEnv("PG_REPLICATION_PASSWORD")
+  .setSlotName("vertx_app_slot")
+  .setPlugin("wal2json")
+  .setPreflightEnabled(true);
+----
+
+=== Starting and subscribing
+
+[source,java]
+----
+Vertx vertx = Vertx.vertx();
+PostgresLogicalReplicationStream stream = new PostgresLogicalReplicationStream(vertx, options);
+
+stream.preflight()
+  .compose(report -> report.ok()
+    ? Future.succeededFuture()
+    : Future.failedFuture("PostgreSQL preflight failed"))
+  .onSuccess(v -> {
+    SubscriptionRegistration registration = stream.startAndSubscribe(
+      PostgresChangeFilter.tables("public.orders")
+        .operations(PostgresChangeEvent.Operation.INSERT, PostgresChangeEvent.Operation.UPDATE),
+      event -> {
+        System.out.println(event.getNewData());
+        return Future.succeededFuture();
+      },
+      Throwable::printStackTrace
+    );
+
+    registration.started().onFailure(Throwable::printStackTrace);
+  })
+  .onFailure(Throwable::printStackTrace);
+----
+
+=== Operational notes
+
+* Keep slot lag under control and alert before disk pressure builds up.
+* Persist LSN checkpoints in production with a non-`NoopLsnStore` implementation, for example `FileLsnStore` optionally wrapped by `PrefixedLsnStore`.
+* Prefer `passwordEnv` over inline secrets.
+* Enable retry policy explicitly if your deployment requires reconnect behavior.

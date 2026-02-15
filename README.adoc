@@ -1,0 +1,151 @@
+= Vert.x Replication Streams
+:toc: left
+:icons: font
+
+image:https://github.com/henneberger/vertx-pg-logical-replication/actions/workflows/ci.yml/badge.svg["CI and Docs",link="https://github.com/henneberger/vertx-pg-logical-replication/actions/workflows/ci.yml"]
+
+Reactive, non-blocking change data capture (CDC) and replication streams for Vert.x.
+
+This project provides a shared replication core plus database-specific connectors for PostgreSQL, SQL Server, MySQL, MariaDB, CockroachDB, Oracle, Db2, Cassandra, ScyllaDB, MongoDB, and Neo4j.
+
+== Why This Project
+
+- Unified replication stream lifecycle (`start()`, `close()`, subscriptions)
+- Built for Vert.x async programming model
+- Typed change events and operation-aware filtering
+- Retry and reconnect policies
+- Pluggable checkpoint persistence (`LsnStore`)
+
+== Modules
+
+- `replication-core`
+- `replication-postgres`
+- `replication-sqlserver`
+- `replication-mysql`
+- `replication-mariadb`
+- `replication-cockroachdb`
+- `replication-oracle`
+- `replication-db2`
+- `replication-cassandra`
+- `replication-scylladb`
+- `replication-mongodb`
+- `replication-neo4j`
+
+== Requirements
+
+- JDK 11+
+- Maven 3.8+
+- Docker (for integration tests)
+
+PostgreSQL connector requirements:
+
+- `wal2json` plugin installed on the server
+- `wal_level=logical`
+- `max_replication_slots>=1`
+- `max_wal_senders>=1`
+
+== Installation
+
+PostgreSQL connector:
+
+[source,xml]
+----
+<dependency>
+  <groupId>dev.henneberger</groupId>
+  <artifactId>vertx-pg-logical-replication</artifactId>
+  <version>0.3.0-SNAPSHOT</version>
+</dependency>
+----
+
+Core module:
+
+[source,xml]
+----
+<dependency>
+  <groupId>dev.henneberger</groupId>
+  <artifactId>vertx-replication-core</artifactId>
+  <version>0.3.0-SNAPSHOT</version>
+</dependency>
+----
+
+SQL Server connector:
+
+[source,xml]
+----
+<dependency>
+  <groupId>dev.henneberger</groupId>
+  <artifactId>vertx-sqlserver-cdc-replication</artifactId>
+  <version>0.3.0-SNAPSHOT</version>
+</dependency>
+----
+
+== Quickstart (PostgreSQL)
+
+[source,java]
+----
+Vertx vertx = Vertx.vertx();
+
+PostgresReplicationOptions options = new PostgresReplicationOptions()
+  .setHost("localhost")
+  .setPort(5432)
+  .setDatabase("app")
+  .setUser("app")
+  .setPassword("secret")
+  .setSlotName("vertx_app_slot");
+
+PostgresLogicalReplicationStream stream = new PostgresLogicalReplicationStream(vertx, options);
+
+PostgresChangeSubscription subscription = stream.subscribe(
+  PostgresChangeFilter.tables("public.orders")
+    .operations(PostgresChangeEvent.Operation.INSERT, PostgresChangeEvent.Operation.UPDATE),
+  event -> {
+    System.out.println(event.getNewData());
+    return Future.succeededFuture();
+  },
+  Throwable::printStackTrace
+);
+
+stream.start().onFailure(Throwable::printStackTrace);
+
+// shutdown
+subscription.cancel();
+stream.close();
+vertx.close();
+----
+
+== Build and Test
+
+[source,bash]
+----
+mvn clean verify
+----
+
+Build and package docs:
+
+[source,bash]
+----
+mvn -Pdocs -DskipTests package
+----
+
+== Documentation
+
+- Local docs source: `docs/index.adoc`
+- Published docs: `https://henneberger.github.io/vertx-pg-logical-replication/`
+- Additional references:
+  - link:BUILDING.md[Building Guide]
+  - link:CONTRIBUTING.md[Contributing Guide]
+  - link:PUBLISHING.md[Publishing Guide]
+
+== Contributing
+
+Contributions are welcome. Please read link:CONTRIBUTING.md[CONTRIBUTING.md] before opening a PR.
+
+== Roadmap
+
+- Improve end-to-end integration test coverage for all connectors
+- Stabilize non-PostgreSQL connector APIs
+- Expand operational guidance and deployment docs
+
+== License
+
+Apache License 2.0. See link:LICENSE.txt[LICENSE.txt].

@@ -1,0 +1,151 @@
+= Log-Stream CDC Migration Plan
+
+Date: 2026-02-15
+
+Goal: move adapters from polling-based CDC to true log-stream CDC wherever feasible, while preserving existing public APIs.
+
+== Current Classification
+
+Already true log-stream CDC:
+
+- PostgreSQL (`PGReplicationStream` + logical slot)
+- MySQL (binlog stream)
+- MongoDB (change streams)
+
+Polling or pseudo-stream today:
+
+- MariaDB
+- CockroachDB
+- SQL Server
+- Oracle
+- Db2
+- Cassandra
+- ScyllaDB
+- Neo4j
+
+== Feasibility and Priority
+
+P0 (High feasibility, high value):
+
+1. MariaDB -> binlog stream adapter
+2. CockroachDB -> native `CHANGEFEED` streaming adapter
+
+P1 (Feasible with design constraints):
+
+1. SQL Server -> lower-latency CDC stream worker over CDC metadata windows (not protocol-equivalent to Postgres)
+
+P2 (Conditional or vendor/tooling dependent):
+
+1. Oracle -> XStream/LogMiner-backed stream path
+2. Db2 -> replication-tooling-backed stream path
+
+P3 (Not protocol-equivalent; keep DB-native eventing):
+
+1. Cassandra (CDC commitlog/files)
+2. ScyllaDB (CDC log tables/streams)
+3. Neo4j (CDC/tx-log APIs)
+
+== Implementation Plan
+
+== Phase 1: Adapter Architecture Guardrails
+
+1. Introduce explicit adapter mode metadata:
+- `LOG_STREAM`
+- `POLLING`
+- `DB_NATIVE_CDC`
+
+2. Keep `ReplicationStream` API stable.
+3. Add adapter contract tests for ordering, resume, duplicate boundary behavior, and checkpoint durability.
+
+Exit criteria:
+
+- Every module declares mode.
+- Contract suite passes on current adapters.
+
+== Phase 2: MariaDB Migration (P0)
+
+1. Replace table polling loop with binlog client flow.
+2. Checkpoint token:
+- binlog file + position (and GTID when available).
+3. Preserve current event/filter/subscription APIs.
+4. Add integration tests with MariaDB container:
+- restart resume
+- large transaction burst
+- schema change boundary behavior
+
+Exit criteria:
+
+- No polling SQL path in runtime stream loop.
+- Resume from persisted position passes integration tests.
+
+== Phase 3: CockroachDB Migration (P0)
+
+1. Replace `SELECT ... WHERE position > ?` polling with `CREATE CHANGEFEED` stream consumption.
+2. Checkpoint token:
+- resolved timestamp / cursor token.
+3. Map changefeed payload to existing `CockroachDbChangeEvent` model.
+4. Add integration tests for:
+- resume from cursor
+- backpressure
+- retention-window failure behavior
+
+Exit criteria:
+
+- Runtime consumes native changefeed stream.
+- Checkpoint semantics validated under restart.
+
+== Phase 4: SQL Server Hardening (P1)
+
+1. Keep CDC table-function basis but improve toward stream-like behavior:
+- bounded windows
+- deterministic tuple ordering
+- incremental page draining
+- adaptive poll interval
+2. Add sync-handler overload and typed event helpers.
+3. Populate commit timestamp when metadata path is reliable.
+
+Exit criteria:
+
+- Throughput/latency improved versus baseline.
+- No known loss/dup in stress restart scenarios.
+
+== Phase 5: Conditional Tracks (P2/P3)
+
+Oracle/Db2:
+
+1. Produce a technical decision record for each:
+- OSS-only path vs vendor/tooling integration
+- operational and licensing constraints
+2. Implement stream path only if supportability is acceptable.
+
+Cassandra/Scylla/Neo4j:
+
+1. Keep as DB-native CDC adapters.
+2. Optimize checkpoint granularity, lag handling, and rebalance behavior.
+3. Do not force protocol parity with Postgres/MySQL.
+
+== Cross-Cutting Requirements
+
+1. Backward compatibility:
+- keep existing adapter public classes and method signatures.
+
+2. Observability:
+- per-adapter lag metrics
+- checkpoint commit metrics
+- stream reconnect counters
+
+3. Safety:
+- idempotent resume at restart boundaries
+- durable checkpoint commit only after consumer ack
+
+== Deliverables
+
+1. Updated support matrix in `docs/index.adoc` with explicit adapter mode.
+2. Migration completion checklist per adapter.
+3. Deprecation notes for polling-only paths replaced by stream paths.
+
+== Success Definition
+
+1. MariaDB and CockroachDB run on native log-stream CDC (no table polling loop).
+2. SQL Server meets restart-safety and low-latency SLOs with deterministic tuple checkpointing.
+3. Remaining adapters are explicitly documented as DB-native CDC (not misrepresented as logical replication protocol).

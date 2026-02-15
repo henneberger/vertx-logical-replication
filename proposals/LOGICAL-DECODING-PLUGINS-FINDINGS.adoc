@@ -1,0 +1,71 @@
+= PostgreSQL Logical Decoding Plugins: Findings
+
+Date: 2026-02-15
+
+== Short Answer
+
+Yes, there are other PostgreSQL logical decoding output plugins besides `wal2json`.
+
+== What Is Officially in PostgreSQL
+
+1. `pgoutput` (built-in standard plugin)
+- PostgreSQL docs describe `pgoutput` as the standard plugin used by built-in logical replication.
+- It is the default choice for publication/subscription style logical replication.
+
+2. `test_decoding` (example/testing plugin)
+- PostgreSQL docs describe `test_decoding` as an example output plugin, mainly useful as a reference and for testing.
+- It outputs text-form decoded changes.
+
+3. Custom output plugins are supported
+- PostgreSQL exposes an output plugin API (`_PG_output_plugin_init`, callbacks) so additional plugins can be developed and loaded as shared libraries.
+
+== Well-Known Third-Party PostgreSQL Output Plugins
+
+1. `wal2json`
+- JSON output plugin for logical decoding.
+- Commonly used by CDC integrations that prefer JSON payloads.
+
+2. `postgres-decoderbufs` / `decoderbufs`
+- Protocol Buffers output plugin for logical decoding.
+- `postgres-decoderbufs` is a maintained fork used in Debezium contexts.
+
+3. Other community plugins exist
+- The PostgreSQL wiki keeps a community-maintained catalog of additional plugins (JSON/SQL/Protobuf/etc.).
+- This list is useful for discovery but is not an official support guarantee.
+
+== Practical Conclusion for This Library
+
+If this library should remain PostgreSQL-native and broadly deployable:
+
+1. First-class support should include:
+- `pgoutput` (built-in, no extra server plugin install)
+- `wal2json` (already used)
+
+2. Optional/advanced support can include:
+- `postgres-decoderbufs` or other plugins via a generic decoder interface
+
+3. API implication:
+- Keep plugin name and plugin options configurable (`setPlugin`, `setPluginOptions`)
+- Keep decoder pluggable so each plugin can map its payload format cleanly
+
+== Notes
+
+- Plugin availability is environment-dependent (managed cloud offerings may limit custom shared-library plugins).
+- `pgoutput` generally has the least operational friction because it is built into PostgreSQL.
+
+== Sources
+
+- PostgreSQL docs: Logical Decoding Output Plugins
+  - https://www.postgresql.org/docs/16/logicaldecoding-output-plugin.html
+- PostgreSQL docs: Logical Streaming Replication Protocol (`pgoutput`)
+  - https://www.postgresql.org/docs/15/protocol-logical-replication.html
+- PostgreSQL docs: Logical Replication Architecture (`pgoutput` standard plugin)
+  - https://www.postgresql.org/docs/18/logical-replication-architecture.html
+- PostgreSQL docs: `test_decoding`
+  - https://www.postgresql.org/docs/9.5/test-decoding.html
+- wal2json repository
+  - https://github.com/eulerto/wal2json
+- postgres-decoderbufs repository
+  - https://github.com/debezium/postgres-decoderbufs
+- PostgreSQL wiki: community plugin catalog
+  - https://wiki.postgresql.org/wiki/Logical_Decoding_Plugins

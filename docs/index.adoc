@@ -1,0 +1,139 @@
+= Vert.x Logical Replication Connector Manual
+:toc: left
+
+At the heart of this project is a set of APIs for consuming database changes as reactive streams on top of Vert.x.
+
+This manual uses PostgreSQL as the full walkthrough and lists all supported connectors and caveats on this page:
+
+* PostgreSQL logical replication (`wal2json`)
+* SQL Server CDC polling
+* MySQL binlog CDC
+* MariaDB binlog CDC
+* CockroachDB changefeed/CDC adapter
+* Oracle CDC adapter
+* Db2 CDC adapter
+* Cassandra CDC adapter
+* ScyllaDB CDC adapter
+* MongoDB change stream adapter
+* Neo4j CDC adapter
+
+If you are using Maven, add the dependency for the connector you need:
+
+* PostgreSQL:
++
+[source,xml]
+----
+<dependency>
+  <groupId>dev.henneberger</groupId>
+  <artifactId>vertx-pg-logical-replication</artifactId>
+  <version>0.3.0-SNAPSHOT</version>
+</dependency>
+----
+
+* SQL Server:
++
+[source,xml]
+----
+<dependency>
+  <groupId>dev.henneberger</groupId>
+  <artifactId>vertx-sqlserver-cdc-replication</artifactId>
+  <version>0.3.0-SNAPSHOT</version>
+</dependency>
+----
+
+== Supported Databases
+
+[cols="1,1,2",options="header"]
+|===
+| Database | Module | Notes
+
+| PostgreSQL
+| `vertx-pg-logical-replication`
+| Full walkthrough in this manual (`wal2json`).
+
+| SQL Server
+| `vertx-sqlserver-cdc-replication`
+| Supported. Uses CDC polling.
+
+| MySQL
+| `vertx-mysql-cdc-replication`
+| Supported. Uses binlog connector semantics.
+
+| MariaDB
+| `vertx-mariadb-cdc-replication`
+| Supported. Uses MariaDB binlog stream semantics.
+
+| CockroachDB
+| `vertx-cockroachdb-cdc-replication`
+| Supported connector module.
+
+| Oracle
+| `vertx-oracle-cdc-replication`
+| Supported connector module.
+
+| Db2
+| `vertx-db2-cdc-replication`
+| Supported connector module.
+
+| Cassandra
+| `vertx-cassandra-cdc-replication`
+| Supported connector module.
+
+| ScyllaDB
+| `vertx-scylladb-cdc-replication`
+| Supported connector module.
+
+| MongoDB
+| `vertx-mongodb-cdc-replication`
+| Supported connector module.
+
+| Neo4j
+| `vertx-neo4j-cdc-replication`
+| Supported connector module.
+|===
+
+== In the beginning there is a replication stream
+
+Each connector implements the same stream lifecycle:
+
+* `preflight()` to validate source prerequisites
+* `start()` to begin consuming changes
+* `subscribe(...)` or `startAndSubscribe(...)` to receive events
+* `close()` to stop
+
+You can treat each connector as a database-specific implementation of the shared `ReplicationStream` contract.
+
+== Recommended startup flow
+
+Use this sequence in production:
+
+1. Build options explicitly.
+2. Run `preflight()` and fail fast on errors.
+3. Use `startAndSubscribe(...)` for deterministic startup behavior.
+4. Persist checkpoints (`LsnStore`) outside development environments.
+5. Register state handlers and metrics listeners for observability.
+
+== Checkpoint storage
+
+`vertx-replication-core` includes several `LsnStore` implementations so you can choose storage based on environment:
+
+* `NoopLsnStore` for local development only.
+* `InMemoryLsnStore` for tests.
+* `LocalMapLsnStore` for Vert.x process-local shared data.
+* `FileLsnStore` for durable JSON-file persistence.
+* `PrefixedLsnStore` to namespace keys over any existing store.
+
+include::postgresql.adoc[]
+
+== Connector-specific caveats
+
+Non-PostgreSQL connectors have database-specific setup differences. Minimum checks by connector:
+
+* SQL Server: enable SQL Server Agent, `sp_cdc_enable_db`, and table-level CDC/capture instance.
+* MySQL and MariaDB: enable binlog, use ROW format, and verify connector/auth compatibility.
+* CockroachDB: verify CDC/changefeed permissions and sink/source compatibility used by the adapter.
+* Oracle: verify required CDC/log mining prerequisites and connector principal privileges.
+* Db2: verify CDC/change data capture setup and polling/query privileges.
+* Cassandra and ScyllaDB: verify CDC is enabled at table/keyspace level and retention windows match consumer lag.
+* MongoDB: run as replica set/sharded deployment with change streams enabled and proper read permissions.
+* Neo4j: verify change data capture/event stream prerequisites and driver authentication/permissions.

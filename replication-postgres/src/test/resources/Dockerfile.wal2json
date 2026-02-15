@@ -1,0 +1,16 @@
+FROM postgres:16
+
+RUN set -eux; \
+  apt-get update; \
+  apt-get install -y --no-install-recommends \
+    ca-certificates \
+    git \
+    make \
+    gcc \
+    libc6-dev \
+    postgresql-server-dev-16; \
+  rm -rf /var/lib/apt/lists/*; \
+  git clone --depth 1 https://github.com/eulerto/wal2json.git /tmp/wal2json; \
+  make -C /tmp/wal2json; \
+  make -C /tmp/wal2json install; \
+  rm -rf /tmp/wal2json

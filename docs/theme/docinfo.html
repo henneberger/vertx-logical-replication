@@ -1,0 +1,15 @@
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var header = document.createElement('header');
+  header.className = 'vertx-site-header';
+  header.setAttribute('role', 'banner');
+  header.innerHTML = '<div class="vertx-site-header__inner">' +
+    '<a class="vertx-site-header__brand" href="index.html" aria-label="Vert.x Docs Home">' +
+    '<span class="vertx-site-header__brand-mark" aria-hidden="true">V</span>' +
+    '<span class="vertx-site-header__brand-text">Eclipse Vert.x Docs</span>' +
+    '</a>' +
+    '<span class="vertx-site-header__section">Logical Replication Connector</span>' +
+    '</div>';
+  document.body.insertBefore(header, document.body.firstChild);
+});
+</script>

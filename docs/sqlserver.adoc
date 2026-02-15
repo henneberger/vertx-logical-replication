@@ -1,0 +1,57 @@
+== SQL Server
+
+The SQL Server connector polls CDC change tables by LSN window and maps rows to `SqlServerChangeEvent`.
+
+=== Requirements
+
+* SQL Server Agent enabled and running.
+* CDC enabled at database level.
+* CDC enabled on source tables with a known capture instance.
+* Principal permissions to query CDC functions/tables.
+
+=== Creating options
+
+[source,java]
+----
+SqlServerReplicationOptions options = new SqlServerReplicationOptions()
+  .setHost("localhost")
+  .setPort(1433)
+  .setDatabase("app")
+  .setUser("app")
+  .setPasswordEnv("SQLSERVER_CDC_PASSWORD")
+  .setCaptureInstance("dbo_orders")
+  .setPreflightEnabled(true)
+  .setPreflightMode("strict")
+  .setPollIntervalMs(500)
+  .setMaxBatchSize(1000);
+----
+
+=== Starting and subscribing
+
+[source,java]
+----
+Vertx vertx = Vertx.vertx();
+SqlServerLogicalReplicationStream stream = new SqlServerLogicalReplicationStream(vertx, options);
+
+stream.preflight()
+  .compose(report -> report.ok()
+    ? Future.succeededFuture()
+    : Future.failedFuture("SQL Server preflight failed"))
+  .onSuccess(v -> {
+    SubscriptionRegistration registration = stream.startAndSubscribe(
+      SqlServerChangeFilter.instances("dbo_orders"),
+      event -> Future.succeededFuture(),
+      Throwable::printStackTrace
+    );
+
+    registration.started().onFailure(Throwable::printStackTrace);
+  })
+  .onFailure(Throwable::printStackTrace);
+----
+
+=== Operational notes
+
+* CDC cleanup can purge rows if the connector lags behind; monitor checkpoint drift.
+* Keep poll interval and batch size tuned to balance latency and database load.
+* Persist LSN checkpoints in production with a non-`NoopLsnStore` implementation, for example `FileLsnStore` optionally wrapped by `PrefixedLsnStore`.
+* Use `strict` preflight mode for deployment safety unless startup waiting is required.

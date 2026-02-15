@@ -1,0 +1,211 @@
+= Draft Proposal: Simplifying Application Integrations on v0.3
+
+== Context
+
+Three example applications were implemented against `vertx-pg-logical-replication` v0.3:
+
+1. E-commerce read model indexer
+2. Fintech fraud detector
+3. SaaS audit trail
+
+All three work end-to-end, but they repeat similar integration code:
+
+- Environment/config parsing
+- Startup + subscription wiring
+- Lifecycle error handling
+- Event field extraction and type conversion
+- Common filter patterns
+
+This proposal focuses on reducing that repeated code while keeping domain logic explicit.
+
+== Goals
+
+- Reduce per-service integration boilerplate by at least 30-50%.
+- Keep domain behavior in app code, move framework ceremony into library helpers.
+- Preserve operational visibility and explicit lifecycle semantics.
+
+== Proposed Additions
+
+=== 1) App Config Loader
+
+Add a small config helper for common environment mapping.
+
+[source,java]
+----
+public final class ReplicationAppConfig {
+  public static ReplicationAppConfig fromEnv(String slotName);
+
+  public String pgHost();
+  public int pgPort();
+  public String pgDatabase();
+  public String pgUser();
+  public String pgPasswordEnv();
+  public boolean ssl();
+  public int httpPort();
+
+  public PostgresReplicationOptions toReplicationOptions();
+}
+----
+
+Impact:
+- Removes repeated `env(...)` methods and per-app option assembly.
+
+=== 2) Start + Subscribe Convenience API
+
+Add an API that combines explicit startup with subscription wiring.
+
+[source,java]
+----
+public final class SubscriptionRegistration {
+  public PostgresChangeSubscription subscription();
+  public Future<Void> started();
+}
+
+public class PostgresLogicalReplicationStream {
+  public SubscriptionRegistration startAndSubscribe(
+    PostgresChangeFilter filter,
+    Handler<PostgresChangeEvent> eventHandler,
+    Handler<Throwable> errorHandler
+  );
+}
+----
+
+Impact:
+- Removes repeated sequence:
+  `subscribe(...); start().onFailure(...)`.
+
+=== 3) Event Access Helpers
+
+Add typed access methods for common extraction patterns.
+
+[source,java]
+----
+public final class PostgresChangeEvent {
+  public Map<String, Object> rowOrKeys();
+
+  public String string(String field);
+  public Integer integer(String field);
+  public Long longValue(String field);
+  public Double doubleValue(String field);
+  public BigDecimal decimal(String field);
+
+  public String stringFromNew(String field);
+  public String stringFromOld(String field);
+
+  public JsonObject newDataJson();
+  public JsonObject oldKeysJson();
+}
+----
+
+Impact:
+- Removes custom helper methods like `str`, `toDouble`, `eventRow`, `stringValue`.
+- Simplifies audit serialization.
+
+=== 4) Filter Presets
+
+Add common operation presets directly to filter API.
+
+[source,java]
+----
+public final class PostgresChangeFilter {
+  public PostgresChangeFilter onlyInserts();
+  public PostgresChangeFilter nonDeletes();
+  public PostgresChangeFilter only(PostgresChangeEvent.Operation... operations);
+}
+----
+
+Impact:
+- Reduces repeated operation filtering logic in handlers.
+
+=== 5) Option Presets
+
+Add battle-tested defaults for retry and preflight.
+
+[source,java]
+----
+public final class ReplicationOptionPresets {
+  public static void applyProductionDefaults(PostgresReplicationOptions options);
+  public static void applyLocalDevDefaults(PostgresReplicationOptions options);
+}
+----
+
+`applyProductionDefaults` suggested behavior:
+- preflight enabled
+- retry exponential backoff (500ms to 30s, jitter 0.2)
+- autoStart false
+
+Impact:
+- Removes repeated retry/preflight setup code.
+
+=== 6) Optional Lifecycle Logging Utility
+
+Provide a utility that registers sensible state/error logging.
+
+[source,java]
+----
+public final class ReplicationLogging {
+  public static void attachDefaultLogging(
+    PostgresLogicalReplicationStream stream,
+    Logger logger,
+    String streamName
+  );
+}
+----
+
+Impact:
+- Standardized operational logs without custom boilerplate.
+
+== Example Before/After (Conceptual)
+
+== Before (current examples)
+
+- Per-app custom env parsing
+- Per-app retry/preflight setup
+- Per-app `subscribe + start` choreography
+- Per-app data conversion helpers
+
+== After (with proposal)
+
+[source,java]
+----
+ReplicationAppConfig cfg = ReplicationAppConfig.fromEnv("fraud_detection_slot");
+PostgresReplicationOptions options = cfg.toReplicationOptions();
+ReplicationOptionPresets.applyProductionDefaults(options);
+
+PostgresLogicalReplicationStream stream = new PostgresLogicalReplicationStream(vertx, options);
+ReplicationLogging.attachDefaultLogging(stream, LOG, "fraud-detector");
+
+stream.startAndSubscribe(
+  PostgresChangeFilter.tables("public.accounts", "public.transactions").nonDeletes(),
+  event -> score(event.decimal("amount"), event.string("country")),
+  err -> LOG.error("replication failure", err)
+);
+----
+
+== Non-Goals
+
+- Do not hide replication semantics entirely behind a heavy framework.
+- Do not replace custom domain handling with opaque generic processors.
+- Do not introduce mandatory dependencies beyond current footprint.
+
+== Compatibility and Scope
+
+- These additions can be introduced in v0.3.x as additive APIs.
+- Existing v0.3 apps remain valid and can adopt helpers incrementally.
+
+== Open Questions
+
+1. Should `ReplicationAppConfig` live in core or a small companion artifact (for stricter dependency boundaries)?
+2. Should typed event accessors return `Optional<T>` or nullable values?
+3. Should `startAndSubscribe` automatically cancel subscription on startup failure?
+4. Should default lifecycle logging be fully opt-in utility (recommended) or stream option flag?
+
+== Suggested Implementation Order
+
+1. Event access helpers (`rowOrKeys`, typed accessors, JSON helpers)
+2. `startAndSubscribe` convenience API
+3. Filter presets
+4. Option presets
+5. Config loader + logging utility
+
+This order yields immediate line-count reduction in all three examples with minimal risk.

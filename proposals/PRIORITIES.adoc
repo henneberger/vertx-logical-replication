@@ -1,0 +1,39 @@
+= Priority Work Items
+
+Date: 2026-02-15
+
+This file tracks only unfinished, high-impact work.
+
+== P0 (Do Next)
+
+1. Extract shared stream runtime in `replication-core`
+- Add common lifecycle/retry/subscription/preflight runtime used by all adapters.
+- Goal: reduce copy/paste across `*LogicalReplicationStream` implementations.
+
+2. Introduce shared JDBC polling base
+- Migrate first: `replication-oracle`, `replication-db2`, `replication-mariadb`, `replication-cockroachdb`.
+- Goal: thin adapter wrappers with shared polling/checkpoint plumbing.
+
+3. Add adapter contract test kit and adopt it
+- Validate `start`, `close`, state transitions, subscription cancellation, retry semantics.
+- Start with migrated modules from items 1-2.
+
+== P1 (Next)
+
+1. SQL Server developer ergonomics parity
+- Add typed field helpers on `SqlServerChangeEvent` (e.g. `rowOrBefore`, `string`, `integer`, `decimal`, `doubleValue`).
+- Add sync-handler overload for `startAndSubscribe(...)`.
+- Add SQL Server app config + option presets helper.
+
+2. Remove `src-legacy-monolith` duplicates after dependency check
+- Confirm no build/runtime dependency, then deprecate and remove duplicate classes.
+
+== P2 (Later)
+
+1. Unify options validation/converter patterns across modules.
+2. Populate SQL Server commit timestamp when feasible.
+3. Add typed startup/preflight exception type carrying report/state.
+
+== Explicitly Not Tracked Here
+
+- Already completed fixes (for example SQL Server tuple checkpoint token and batch paging correctness improvements) are intentionally excluded.

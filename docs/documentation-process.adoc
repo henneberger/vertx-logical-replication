@@ -1,0 +1,69 @@
+= Documentation Process
+:toc: left
+
+This document defines how we write and maintain documentation for the logical replication connector.
+
+Our goal is to keep docs practical, accurate, and aligned with the style used in the main Vert.x manuals.
+
+== Scope
+
+Document all currently supported connectors:
+
+* PostgreSQL
+* SQL Server
+* MySQL
+* MariaDB
+* CockroachDB
+* Oracle
+* Db2
+* Cassandra
+* ScyllaDB
+* MongoDB
+* Neo4j
+
+== Style
+
+Write in the Vert.x manual style:
+
+* Use AsciiDoc.
+* Use short sections with `==` and `===` headings.
+* Explain behavior first, then show code.
+* Keep tone direct and technical.
+* Prefer operational guidance over marketing text.
+
+== File layout
+
+Use this structure:
+
+* `docs/index.adoc` as the manual entry point
+* `docs/postgresql.adoc` for PostgreSQL connector docs
+* Keep supported-database matrix and caveats centralized in `docs/index.adoc`
+* `docs/documentation-process.adoc` for contributor workflow
+
+== Authoring workflow
+
+1. Confirm behavior against current source code in the corresponding `replication-*` module.
+2. Update the relevant chapter first, then update `docs/index.adoc` if navigation or flow changed.
+3. Keep examples minimal and production-safe (`passwordEnv`, explicit preflight, explicit close).
+4. Verify command snippets and configuration keys.
+5. Run build/tests for touched modules when examples or defaults are changed.
+
+== Review checklist
+
+Before merging documentation changes, verify:
+
+* Supported-database list reflects current parent `pom.xml` modules.
+* API names and option names match current code.
+* Preflight behavior is described correctly.
+* Checkpoint and retry expectations are clear.
+* `README.adoc` points to the updated docs.
+
+== Release checklist
+
+For each release candidate:
+
+1. Re-validate setup prerequisites on fresh local environments.
+2. Re-run integration tests for the connector modules touched by the docs update.
+3. Update version snippets in docs.
+4. Verify links render in repository viewers.
+5. Confirm no user-facing docs were added for incomplete connectors.
