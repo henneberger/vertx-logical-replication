@@ -14,8 +14,10 @@ This file tracks only unfinished, high-impact work.
 
 1. Shared runtime extraction + JDBC base rollout
 - Added `AbstractJdbcPollingReplicationStream` in `replication-core`.
+- Added `AbstractWorkerReplicationStream` in `replication-core`.
 - Migrated `replication-oracle`, `replication-db2`, `replication-mariadb`, and `replication-cockroachdb` logical streams to the shared base.
-- Remaining shared-runtime rollout targets: `replication-cassandra`, `replication-scylladb`, `replication-sqlserver`, `replication-mongodb`, `replication-mysql`.
+- Migrated `replication-cassandra` and `replication-scylladb` logical streams to the shared worker runtime.
+- Remaining shared-runtime rollout targets: `replication-sqlserver`, `replication-mongodb`, `replication-mysql`.
 
 == Explicitly Not Tracked Here
 
