@@ -79,7 +79,7 @@ public class CassandraLogicalReplicationStream implements ReplicationStream<Cass
     Future<Void> preflightFuture = options.isPreflightEnabled()
       ? preflight().compose(report -> report.ok()
       ? Future.succeededFuture()
-      : Future.failedFuture(new IllegalStateException(PreflightReports.describeFailure(report))))
+      : Future.failedFuture(new dev.henneberger.vertx.replication.core.PreflightFailedException(report, ReplicationStreamState.STARTING)))
       : Future.succeededFuture();
 
     preflightFuture.onSuccess(v -> startWorker()).onFailure(err -> {

@@ -109,7 +109,7 @@ public class PostgresLogicalReplicationStream implements ReplicationStream<Postg
         if (report.ok()) {
           return Future.succeededFuture();
         }
-        return Future.failedFuture(new IllegalStateException(PreflightReports.describeFailure(report)));
+        return Future.failedFuture(new dev.henneberger.vertx.replication.core.PreflightFailedException(report, ReplicationStreamState.STARTING));
       });
     } else {
       preflightFuture = Future.succeededFuture();

@@ -58,7 +58,7 @@ public abstract class AbstractJdbcPollingReplicationStream<E> implements Replica
     Future<Void> preflightFuture = preflightEnabled()
       ? preflight().compose(report -> report.ok()
       ? Future.succeededFuture()
-      : Future.failedFuture(new IllegalStateException(PreflightReports.describeFailure(report))))
+      : Future.failedFuture(new dev.henneberger.vertx.replication.core.PreflightFailedException(report, ReplicationStreamState.STARTING)))
       : Future.succeededFuture();
 
     preflightFuture.onSuccess(v -> startWorker())

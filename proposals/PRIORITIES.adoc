@@ -30,7 +30,6 @@ This file tracks only unfinished, high-impact work.
 
 1. Unify options validation/converter patterns across modules.
 2. Populate SQL Server commit timestamp when feasible.
-3. Add typed startup/preflight exception type carrying report/state.
 
 == Explicitly Not Tracked Here
 
@@ -46,3 +45,7 @@ This file tracks only unfinished, high-impact work.
 2. Shared JDBC polling base migration
 - Introduced `AbstractJdbcPollingReplicationStream` in `replication-core`.
 - Completed migration of `replication-oracle`, `replication-db2`, `replication-mariadb`, and `replication-cockroachdb`.
+
+3. Typed startup/preflight exception
+- Added `PreflightFailedException` carrying `PreflightReport` and `ReplicationStreamState`.
+- Wired all adapters to fail preflight with this typed exception.

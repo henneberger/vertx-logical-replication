@@ -99,7 +99,7 @@ public class MySqlLogicalReplicationStream implements ReplicationStream<MySqlCha
     if (options.isPreflightEnabled()) {
       preflightFuture = preflight().compose(report -> report.ok()
         ? Future.succeededFuture()
-        : Future.failedFuture(new IllegalStateException(PreflightReports.describeFailure(report))));
+        : Future.failedFuture(new dev.henneberger.vertx.replication.core.PreflightFailedException(report, ReplicationStreamState.STARTING)));
     } else {
       preflightFuture = Future.succeededFuture();
     }
