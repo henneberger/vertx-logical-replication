@@ -17,10 +17,6 @@ This file tracks only unfinished, high-impact work.
 - Migrated `replication-oracle`, `replication-db2`, `replication-mariadb`, and `replication-cockroachdb` logical streams to the shared base.
 - Remaining shared-runtime rollout targets: `replication-cassandra`, `replication-scylladb`, `replication-sqlserver`, `replication-mongodb`, `replication-mysql`.
 
-== P2 (Later)
-
-1. Unify options validation/converter patterns across modules.
-
 == Explicitly Not Tracked Here
 
 - Already completed fixes (for example SQL Server tuple checkpoint token and batch paging correctness improvements) are intentionally excluded.
@@ -51,9 +47,9 @@ This file tracks only unfinished, high-impact work.
 - Added shared `ReplicationStreamContractKit` in `replication-core`.
 - Adopted contract tests for `replication-oracle`, `replication-db2`, `replication-mariadb`, and `replication-cockroachdb`.
 
-== P2 (In Progress)
-
-1. Option validation unification
+7. Option validation unification
 - Added shared `OptionValidation` helper in `replication-core`.
-- Migrated validation logic for `replication-oracle`, `replication-db2`, `replication-mariadb`, and `replication-cockroachdb` options.
-- Remaining modules still using local validation helpers will be migrated incrementally.
+- Migrated validation logic for all adapter options:
+  `replication-postgres`, `replication-mysql`, `replication-mongodb`, `replication-oracle`,
+  `replication-db2`, `replication-mariadb`, `replication-cockroachdb`, `replication-sqlserver`,
+  `replication-cassandra`, `replication-scylladb`, and `replication-neo4j`.

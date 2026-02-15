@@ -2,6 +2,7 @@ package dev.henneberger.vertx.sqlserver.replication;
 
 import dev.henneberger.vertx.replication.core.LsnStore;
 import dev.henneberger.vertx.replication.core.NoopLsnStore;
+import dev.henneberger.vertx.replication.core.OptionValidation;
 import dev.henneberger.vertx.replication.core.RetryPolicy;
 import dev.henneberger.vertx.replication.core.ValueNormalizationMode;
 import dev.henneberger.vertx.replication.core.ValueNormalizer;
@@ -275,39 +276,21 @@ public class SqlServerReplicationOptions {
   }
 
   void validate() {
-    require("host", host);
-    if (port < 1 || port > 65535) {
-      throw new IllegalArgumentException("port must be between 1 and 65535");
-    }
-    require("database", database);
-    require("user", user);
-    require("captureInstance", captureInstance);
-    if (pollIntervalMs < 1L) {
-      throw new IllegalArgumentException("pollIntervalMs must be >= 1");
-    }
-    if (maxBatchSize < 1) {
-      throw new IllegalArgumentException("maxBatchSize must be >= 1");
-    }
+    OptionValidation.require("host", host);
+    OptionValidation.requirePort(port);
+    OptionValidation.require("database", database);
+    OptionValidation.require("user", user);
+    OptionValidation.require("captureInstance", captureInstance);
+    OptionValidation.requireMin("pollIntervalMs", pollIntervalMs, 1);
+    OptionValidation.requireMin("maxBatchSize", maxBatchSize, 1);
     if (!"strict".equals(preflightMode) && !"wait-until-ready".equals(preflightMode)) {
       throw new IllegalArgumentException("preflightMode must be 'strict' or 'wait-until-ready'");
     }
-    if (preflightMaxWaitMs < 0L) {
-      throw new IllegalArgumentException("preflightMaxWaitMs must be >= 0");
-    }
-    if (preflightRetryIntervalMs < 1L) {
-      throw new IllegalArgumentException("preflightRetryIntervalMs must be >= 1");
-    }
-    if (maxConcurrentDispatch < 1) {
-      throw new IllegalArgumentException("maxConcurrentDispatch must be >= 1");
-    }
+    OptionValidation.requireMin("preflightMaxWaitMs", preflightMaxWaitMs, 0);
+    OptionValidation.requireMin("preflightRetryIntervalMs", preflightRetryIntervalMs, 1);
+    OptionValidation.requireMin("maxConcurrentDispatch", maxConcurrentDispatch, 1);
     Objects.requireNonNull(retryPolicy, "retryPolicy").validate();
     Objects.requireNonNull(lsnStore, "lsnStore");
-  }
-
-  private static void require(String fieldName, String value) {
-    if (value == null || value.isBlank()) {
-      throw new IllegalArgumentException(fieldName + " is required");
-    }
   }
 
   private void init() {

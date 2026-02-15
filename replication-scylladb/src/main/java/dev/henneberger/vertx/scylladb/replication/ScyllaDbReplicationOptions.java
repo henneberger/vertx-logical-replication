@@ -2,6 +2,7 @@ package dev.henneberger.vertx.scylladb.replication;
 
 import dev.henneberger.vertx.replication.core.LsnStore;
 import dev.henneberger.vertx.replication.core.NoopLsnStore;
+import dev.henneberger.vertx.replication.core.OptionValidation;
 import dev.henneberger.vertx.replication.core.RetryPolicy;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.annotations.GenIgnore;
@@ -226,31 +227,17 @@ public class ScyllaDbReplicationOptions {
   }
 
   void validate() {
-    require("host", host);
-    require("localDatacenter", localDatacenter);
-    require("keyspace", keyspace);
-    require("sourceTable", sourceTable);
-    require("positionColumn", positionColumn);
-    if (port < 1 || port > 65535) {
-      throw new IllegalArgumentException("port must be between 1 and 65535");
-    }
-    if (pollIntervalMs < 1L) {
-      throw new IllegalArgumentException("pollIntervalMs must be >= 1");
-    }
-    if (batchSize < 1) {
-      throw new IllegalArgumentException("batchSize must be >= 1");
-    }
-    if (maxConcurrentDispatch < 1) {
-      throw new IllegalArgumentException("maxConcurrentDispatch must be >= 1");
-    }
+    OptionValidation.require("host", host);
+    OptionValidation.require("localDatacenter", localDatacenter);
+    OptionValidation.require("keyspace", keyspace);
+    OptionValidation.require("sourceTable", sourceTable);
+    OptionValidation.require("positionColumn", positionColumn);
+    OptionValidation.requirePort(port);
+    OptionValidation.requireMin("pollIntervalMs", pollIntervalMs, 1);
+    OptionValidation.requireMin("batchSize", batchSize, 1);
+    OptionValidation.requireMin("maxConcurrentDispatch", maxConcurrentDispatch, 1);
     Objects.requireNonNull(retryPolicy, "retryPolicy").validate();
     Objects.requireNonNull(lsnStore, "lsnStore");
-  }
-
-  private static void require(String fieldName, String value) {
-    if (value == null || value.isBlank()) {
-      throw new IllegalArgumentException(fieldName + " is required");
-    }
   }
 
   private void init() {

@@ -2,6 +2,7 @@ package dev.henneberger.vertx.neo4j.replication;
 
 import dev.henneberger.vertx.replication.core.LsnStore;
 import dev.henneberger.vertx.replication.core.NoopLsnStore;
+import dev.henneberger.vertx.replication.core.OptionValidation;
 import dev.henneberger.vertx.replication.core.RetryPolicy;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.annotations.GenIgnore;
@@ -197,28 +198,16 @@ public class Neo4jReplicationOptions {
   }
 
   void validate() {
-    require("uri", uri);
-    require("database", database);
-    require("user", user);
-    require("sourceName", sourceName);
-    require("eventQuery", eventQuery);
-    if (pollIntervalMs < 1L) {
-      throw new IllegalArgumentException("pollIntervalMs must be >= 1");
-    }
-    if (batchSize < 1) {
-      throw new IllegalArgumentException("batchSize must be >= 1");
-    }
-    if (maxConcurrentDispatch < 1) {
-      throw new IllegalArgumentException("maxConcurrentDispatch must be >= 1");
-    }
+    OptionValidation.require("uri", uri);
+    OptionValidation.require("database", database);
+    OptionValidation.require("user", user);
+    OptionValidation.require("sourceName", sourceName);
+    OptionValidation.require("eventQuery", eventQuery);
+    OptionValidation.requireMin("pollIntervalMs", pollIntervalMs, 1);
+    OptionValidation.requireMin("batchSize", batchSize, 1);
+    OptionValidation.requireMin("maxConcurrentDispatch", maxConcurrentDispatch, 1);
     Objects.requireNonNull(retryPolicy, "retryPolicy").validate();
     Objects.requireNonNull(lsnStore, "lsnStore");
-  }
-
-  private static void require(String fieldName, String value) {
-    if (value == null || value.isBlank()) {
-      throw new IllegalArgumentException(fieldName + " is required");
-    }
   }
 
   private void init() {

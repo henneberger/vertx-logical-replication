@@ -18,6 +18,7 @@ package dev.henneberger.vertx.pg.replication;
 
 import dev.henneberger.vertx.replication.core.LsnStore;
 import dev.henneberger.vertx.replication.core.NoopLsnStore;
+import dev.henneberger.vertx.replication.core.OptionValidation;
 import dev.henneberger.vertx.replication.core.RetryPolicy;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.annotations.GenIgnore;
@@ -247,14 +248,12 @@ public class PostgresReplicationOptions {
   }
 
   void validate() {
-    require("host", host);
-    if (port < 1 || port > 65535) {
-      throw new IllegalArgumentException("port must be between 1 and 65535");
-    }
-    require("database", database);
-    require("user", user);
-    require("slotName", slotName);
-    require("plugin", plugin);
+    OptionValidation.require("host", host);
+    OptionValidation.requirePort(port);
+    OptionValidation.require("database", database);
+    OptionValidation.require("user", user);
+    OptionValidation.require("slotName", slotName);
+    OptionValidation.require("plugin", plugin);
     Objects.requireNonNull(pluginOptions, "pluginOptions");
     Objects.requireNonNull(retryPolicy, "retryPolicy").validate();
     Objects.requireNonNull(lsnStore, "lsnStore");
@@ -263,15 +262,7 @@ public class PostgresReplicationOptions {
       throw new IllegalArgumentException(
         "changeDecoder " + decoder.getClass().getSimpleName() + " does not support plugin " + plugin);
     }
-    if (maxConcurrentDispatch < 1) {
-      throw new IllegalArgumentException("maxConcurrentDispatch must be >= 1");
-    }
-  }
-
-  private static void require(String fieldName, String value) {
-    if (value == null || value.isBlank()) {
-      throw new IllegalArgumentException(fieldName + " is required");
-    }
+    OptionValidation.requireMin("maxConcurrentDispatch", maxConcurrentDispatch, 1);
   }
 
   private void init() {

@@ -2,6 +2,7 @@ package dev.henneberger.vertx.mongodb.replication;
 
 import dev.henneberger.vertx.replication.core.LsnStore;
 import dev.henneberger.vertx.replication.core.NoopLsnStore;
+import dev.henneberger.vertx.replication.core.OptionValidation;
 import dev.henneberger.vertx.replication.core.RetryPolicy;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.annotations.GenIgnore;
@@ -148,23 +149,13 @@ public class MongoDbReplicationOptions {
   }
 
   void validate() {
-    require("connectionString", connectionString);
-    require("database", database);
-    require("collection", collection);
-    if (batchSize < 1) {
-      throw new IllegalArgumentException("batchSize must be >= 1");
-    }
-    if (maxConcurrentDispatch < 1) {
-      throw new IllegalArgumentException("maxConcurrentDispatch must be >= 1");
-    }
+    OptionValidation.require("connectionString", connectionString);
+    OptionValidation.require("database", database);
+    OptionValidation.require("collection", collection);
+    OptionValidation.requireMin("batchSize", batchSize, 1);
+    OptionValidation.requireMin("maxConcurrentDispatch", maxConcurrentDispatch, 1);
     Objects.requireNonNull(retryPolicy, "retryPolicy").validate();
     Objects.requireNonNull(lsnStore, "lsnStore");
-  }
-
-  private static void require(String fieldName, String value) {
-    if (value == null || value.isBlank()) {
-      throw new IllegalArgumentException(fieldName + " is required");
-    }
   }
 
   private void init() {

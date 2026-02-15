@@ -2,6 +2,7 @@ package dev.henneberger.vertx.mysql.replication;
 
 import dev.henneberger.vertx.replication.core.LsnStore;
 import dev.henneberger.vertx.replication.core.NoopLsnStore;
+import dev.henneberger.vertx.replication.core.OptionValidation;
 import dev.henneberger.vertx.replication.core.RetryPolicy;
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.annotations.GenIgnore;
@@ -104,29 +105,15 @@ public class MySqlReplicationOptions {
   }
 
   void validate() {
-    require("host", host);
-    if (port < 1 || port > 65535) {
-      throw new IllegalArgumentException("port must be between 1 and 65535");
-    }
-    require("database", database);
-    require("user", user);
-    if (serverId < 1) {
-      throw new IllegalArgumentException("serverId must be >= 1");
-    }
-    if (connectTimeoutMs < 1) {
-      throw new IllegalArgumentException("connectTimeoutMs must be >= 1");
-    }
-    if (maxConcurrentDispatch < 1) {
-      throw new IllegalArgumentException("maxConcurrentDispatch must be >= 1");
-    }
+    OptionValidation.require("host", host);
+    OptionValidation.requirePort(port);
+    OptionValidation.require("database", database);
+    OptionValidation.require("user", user);
+    OptionValidation.requireMin("serverId", serverId, 1);
+    OptionValidation.requireMin("connectTimeoutMs", connectTimeoutMs, 1);
+    OptionValidation.requireMin("maxConcurrentDispatch", maxConcurrentDispatch, 1);
     Objects.requireNonNull(retryPolicy, "retryPolicy").validate();
     Objects.requireNonNull(lsnStore, "lsnStore");
-  }
-
-  private static void require(String fieldName, String value) {
-    if (value == null || value.isBlank()) {
-      throw new IllegalArgumentException(fieldName + " is required");
-    }
   }
 
   private void init() {
