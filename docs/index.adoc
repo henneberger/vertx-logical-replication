@@ -43,65 +43,91 @@ If you are using Maven, add the dependency for the connector you need:
 
 == Supported Databases
 
-[cols="1,1,1,2",options="header"]
+[cols="1,1,1,1,2",options="header"]
 |===
-| Database | Module | Mode | Notes
+| Database | Module | Mode | Replication Class | Notes
 
 | PostgreSQL
 | `vertx-pg-logical-replication`
 | `LOG_STREAM`
+| True log-stream
 | Full walkthrough in this manual (`wal2json`).
 
 | SQL Server
 | `vertx-sqlserver-cdc-replication`
 | `POLLING`
+| Polling CDC
 | Supported. Uses CDC polling.
 
 | MySQL
 | `vertx-mysql-cdc-replication`
 | `LOG_STREAM`
+| True log-stream
 | Supported. Uses binlog connector semantics.
 
 | MariaDB
 | `vertx-mariadb-cdc-replication`
 | `POLLING`
+| Polling CDC
 | Supported. Polling adapter today; planned migration to binlog stream mode.
 
 | CockroachDB
 | `vertx-cockroachdb-cdc-replication`
 | `POLLING`
+| Polling CDC
 | Supported. Polling adapter today; planned migration to changefeed stream mode.
 
 | Oracle
 | `vertx-oracle-cdc-replication`
 | `POLLING`
+| Polling CDC
 | Supported connector module.
 
 | Db2
 | `vertx-db2-cdc-replication`
 | `POLLING`
+| Polling CDC
 | Supported connector module.
 
 | Cassandra
 | `vertx-cassandra-cdc-replication`
 | `DB_NATIVE_CDC`
+| DB-native CDC
 | Supported connector module.
 
 | ScyllaDB
 | `vertx-scylladb-cdc-replication`
 | `DB_NATIVE_CDC`
+| DB-native CDC
 | Supported connector module.
 
 | MongoDB
 | `vertx-mongodb-cdc-replication`
 | `LOG_STREAM`
+| True log-stream
 | Supported connector module.
 
 | Neo4j
 | `vertx-neo4j-cdc-replication`
 | `DB_NATIVE_CDC`
+| DB-native CDC
 | Supported connector module.
 |===
+
+== Replication Readiness Rules
+
+For customer-facing statements, this project uses strict terminology:
+
+* `True log-stream`: consumes native transaction logs or event streams directly (no table polling loop in runtime path).
+* `Polling CDC`: reads change tables or source tables on an interval.
+* `DB-native CDC`: uses vendor-specific CDC mechanisms that are not protocol-equivalent to PostgreSQL/MySQL logical/binlog streams.
+
+Minimum customer-readiness criteria for any adapter:
+
+1. Resume from persisted checkpoint after restart is verified.
+2. Duplicate boundary behavior is documented and tested.
+3. Preflight checks fail fast on unsafe source configuration.
+4. Mode classification in docs matches runtime behavior.
 
 == In the beginning there is a replication stream
 
