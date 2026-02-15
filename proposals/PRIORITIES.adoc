@@ -18,7 +18,8 @@ This file tracks only unfinished, high-impact work.
 - Migrated `replication-oracle`, `replication-db2`, `replication-mariadb`, and `replication-cockroachdb` logical streams to the shared base.
 - Migrated `replication-cassandra` and `replication-scylladb` logical streams to the shared worker runtime.
 - Migrated `replication-mongodb` and `replication-mysql` logical streams to the shared worker runtime.
-- Remaining shared-runtime rollout target: `replication-sqlserver`.
+- Migrated `replication-sqlserver` and `replication-neo4j` logical streams to the shared worker runtime.
+- Remaining shared-runtime rollout target: `replication-postgres` (protocol-specific stream path).
 
 == Explicitly Not Tracked Here
 
