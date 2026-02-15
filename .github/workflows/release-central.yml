@@ -34,7 +34,7 @@ jobs:
 
       - name: Validate release version is non-SNAPSHOT
         run: |
-          VERSION=$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)
+          VERSION=$(mvn -q -N -DforceStdout help:evaluate -Dexpression=project.version | tail -n 1 | tr -d '\r')
           echo "Project version: ${VERSION}"
           if [[ "${VERSION}" == *-SNAPSHOT ]]; then
             echo "Refusing to publish SNAPSHOT version to Maven Central."
