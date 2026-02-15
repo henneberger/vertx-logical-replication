@@ -10,10 +10,6 @@ This file tracks only unfinished, high-impact work.
 - Add common lifecycle/retry/subscription/preflight runtime used by all adapters.
 - Goal: reduce copy/paste across `*LogicalReplicationStream` implementations.
 
-2. Add adapter contract test kit and adopt it
-- Validate `start`, `close`, state transitions, subscription cancellation, retry semantics.
-- Start with migrated modules from items 1-2.
-
 == In Progress
 
 1. Shared runtime extraction + JDBC base rollout
@@ -50,6 +46,10 @@ This file tracks only unfinished, high-impact work.
 5. SQL Server commit timestamp enrichment
 - Enriched SQL Server CDC query with `sys.fn_cdc_map_lsn_to_time(__$start_lsn)`.
 - `SqlServerChangeEvent#commitTimestamp` is now populated from CDC metadata when available.
+
+6. Adapter contract test kit
+- Added shared `ReplicationStreamContractKit` in `replication-core`.
+- Adopted contract tests for `replication-oracle`, `replication-db2`, `replication-mariadb`, and `replication-cockroachdb`.
 
 == P2 (In Progress)
 
