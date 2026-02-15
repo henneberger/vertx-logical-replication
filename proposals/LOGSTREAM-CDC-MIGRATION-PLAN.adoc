@@ -4,6 +4,13 @@ Date: 2026-02-15
 
 Goal: move adapters from polling-based CDC to true log-stream CDC wherever feasible, while preserving existing public APIs.
 
+== Status
+
+- 2026-02-15: Phase 1 started.
+- Added `AdapterMode` to `replication-core` and exposed `adapterMode()` on `ReplicationStream`.
+- All current adapters now declare explicit mode (`LOG_STREAM`, `POLLING`, `DB_NATIVE_CDC`).
+- `docs/index.adoc` support matrix now includes mode classification.
+
 == Current Classification
 
 Already true log-stream CDC:

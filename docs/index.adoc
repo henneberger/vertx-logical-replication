@@ -8,14 +8,14 @@ This manual uses PostgreSQL as the full walkthrough and lists all supported conn
 * PostgreSQL logical replication (`wal2json`)
 * SQL Server CDC polling
 * MySQL binlog CDC
-* MariaDB binlog CDC
-* CockroachDB changefeed/CDC adapter
-* Oracle CDC adapter
-* Db2 CDC adapter
-* Cassandra CDC adapter
-* ScyllaDB CDC adapter
+* MariaDB CDC adapter (currently polling)
+* CockroachDB CDC adapter (currently polling)
+* Oracle CDC adapter (currently polling)
+* Db2 CDC adapter (currently polling)
+* Cassandra CDC adapter (DB-native)
+* ScyllaDB CDC adapter (DB-native)
 * MongoDB change stream adapter
-* Neo4j CDC adapter
+* Neo4j CDC adapter (DB-native)
 
 If you are using Maven, add the dependency for the connector you need:
 
@@ -43,52 +43,63 @@ If you are using Maven, add the dependency for the connector you need:
 
 == Supported Databases
 
-[cols="1,1,2",options="header"]
+[cols="1,1,1,2",options="header"]
 |===
-| Database | Module | Notes
+| Database | Module | Mode | Notes
 
 | PostgreSQL
 | `vertx-pg-logical-replication`
+| `LOG_STREAM`
 | Full walkthrough in this manual (`wal2json`).
 
 | SQL Server
 | `vertx-sqlserver-cdc-replication`
+| `POLLING`
 | Supported. Uses CDC polling.
 
 | MySQL
 | `vertx-mysql-cdc-replication`
+| `LOG_STREAM`
 | Supported. Uses binlog connector semantics.
 
 | MariaDB
 | `vertx-mariadb-cdc-replication`
-| Supported. Uses MariaDB binlog stream semantics.
+| `POLLING`
+| Supported. Polling adapter today; planned migration to binlog stream mode.
 
 | CockroachDB
 | `vertx-cockroachdb-cdc-replication`
-| Supported connector module.
+| `POLLING`
+| Supported. Polling adapter today; planned migration to changefeed stream mode.
 
 | Oracle
 | `vertx-oracle-cdc-replication`
+| `POLLING`
 | Supported connector module.
 
 | Db2
 | `vertx-db2-cdc-replication`
+| `POLLING`
 | Supported connector module.
 
 | Cassandra
 | `vertx-cassandra-cdc-replication`
+| `DB_NATIVE_CDC`
 | Supported connector module.
 
 | ScyllaDB
 | `vertx-scylladb-cdc-replication`
+| `DB_NATIVE_CDC`
 | Supported connector module.
 
 | MongoDB
 | `vertx-mongodb-cdc-replication`
+| `LOG_STREAM`
 | Supported connector module.
 
 | Neo4j
 | `vertx-neo4j-cdc-replication`
+| `DB_NATIVE_CDC`
 | Supported connector module.
 |===
 

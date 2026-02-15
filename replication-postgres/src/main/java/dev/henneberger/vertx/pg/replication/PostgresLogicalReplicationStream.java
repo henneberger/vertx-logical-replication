@@ -265,6 +265,11 @@ public class PostgresLogicalReplicationStream implements ReplicationStream<Postg
   }
 
   @Override
+  public dev.henneberger.vertx.replication.core.AdapterMode adapterMode() {
+    return dev.henneberger.vertx.replication.core.AdapterMode.LOG_STREAM;
+  }
+
+  @Override
   public synchronized void close() {
     shouldRun.set(false);
     transition(ReplicationStreamState.CLOSED, null, 0);

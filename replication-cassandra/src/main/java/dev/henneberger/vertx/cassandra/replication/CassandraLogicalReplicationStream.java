@@ -140,6 +140,11 @@ public class CassandraLogicalReplicationStream implements ReplicationStream<Cass
   }
 
   @Override
+  public dev.henneberger.vertx.replication.core.AdapterMode adapterMode() {
+    return dev.henneberger.vertx.replication.core.AdapterMode.DB_NATIVE_CDC;
+  }
+
+  @Override
   public synchronized void close() {
     shouldRun.set(false);
     transition(ReplicationStreamState.CLOSED, null, 0);

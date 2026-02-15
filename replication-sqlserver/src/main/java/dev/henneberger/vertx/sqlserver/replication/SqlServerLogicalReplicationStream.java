@@ -159,6 +159,11 @@ public class SqlServerLogicalReplicationStream implements ReplicationStream<SqlS
   }
 
   @Override
+  public dev.henneberger.vertx.replication.core.AdapterMode adapterMode() {
+    return dev.henneberger.vertx.replication.core.AdapterMode.POLLING;
+  }
+
+  @Override
   public synchronized void close() {
     shouldRun.set(false);
     transition(ReplicationStreamState.CLOSED, null, 0);
