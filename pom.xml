@@ -18,7 +18,30 @@
 
   <name>Vert.x Replication Parent</name>
   <description>Multi-database replication streams for Vert.x</description>
-  <url>https://github.com/henneberger/vertx-pg-logical-replication</url>
+  <url>https://github.com/henneberger/vertx-logical-replication</url>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>henneberger</id>
+      <name>Daniel Henneberger</name>
+      <url>https://github.com/henneberger</url>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:git://github.com/henneberger/vertx-logical-replication.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/henneberger/vertx-logical-replication.git</developerConnection>
+    <url>https://github.com/henneberger/vertx-logical-replication</url>
+    <tag>HEAD</tag>
+  </scm>
 
   <modules>
     <module>replication-core</module>
@@ -54,6 +77,9 @@
     <slf4j.version>2.0.17</slf4j.version>
     <asciidoctor.maven.plugin.version>3.2.0</asciidoctor.maven.plugin.version>
     <maven.assembly.plugin.version>3.7.1</maven.assembly.plugin.version>
+    <maven.javadoc.plugin.version>3.12.0</maven.javadoc.plugin.version>
+    <maven.gpg.plugin.version>3.2.8</maven.gpg.plugin.version>
+    <central.publishing.maven.plugin.version>0.9.0</central.publishing.maven.plugin.version>
   </properties>
 
   <dependencyManagement>
@@ -67,6 +93,14 @@
   </dependencyManagement>
 
   <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-source-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-javadoc-plugin</artifactId>
+      </plugin>
+    </plugins>
     <pluginManagement>
       <plugins>
         <plugin>
@@ -83,6 +117,18 @@
               <id>attach-sources</id>
               <goals>
                 <goal>jar-no-fork</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>${maven.javadoc.plugin.version}</version>
+          <executions>
+            <execution>
+              <id>attach-javadocs</id>
+              <goals>
+                <goal>jar</goal>
               </goals>
             </execution>
           </executions>
@@ -148,6 +194,40 @@
                 </configuration>
               </execution>
             </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>central-release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>${maven.gpg.plugin.version}</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+                <configuration>
+                  <bestPractices>true</bestPractices>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>${central.publishing.maven.plugin.version}</version>
+            <extensions>true</extensions>
+            <configuration>
+              <publishingServerId>central</publishingServerId>
+              <autoPublish>true</autoPublish>
+              <waitUntil>published</waitUntil>
+            </configuration>
           </plugin>
         </plugins>
       </build>
