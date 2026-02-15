@@ -17,7 +17,8 @@ This file tracks only unfinished, high-impact work.
 - Added `AbstractWorkerReplicationStream` in `replication-core`.
 - Migrated `replication-oracle`, `replication-db2`, `replication-mariadb`, and `replication-cockroachdb` logical streams to the shared base.
 - Migrated `replication-cassandra` and `replication-scylladb` logical streams to the shared worker runtime.
-- Remaining shared-runtime rollout targets: `replication-sqlserver`, `replication-mongodb`, `replication-mysql`.
+- Migrated `replication-mongodb` and `replication-mysql` logical streams to the shared worker runtime.
+- Remaining shared-runtime rollout target: `replication-sqlserver`.
 
 == Explicitly Not Tracked Here
 
