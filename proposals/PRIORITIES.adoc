@@ -45,7 +45,10 @@ This file tracks only unfinished, high-impact work.
 
 6. Adapter contract test kit
 - Added shared `ReplicationStreamContractKit` in `replication-core`.
-- Adopted contract tests for `replication-oracle`, `replication-db2`, `replication-mariadb`, and `replication-cockroachdb`.
+- Adopted contract tests for all adapters:
+  `replication-postgres`, `replication-mysql`, `replication-mongodb`, `replication-oracle`,
+  `replication-db2`, `replication-mariadb`, `replication-cockroachdb`, `replication-sqlserver`,
+  `replication-cassandra`, `replication-scylladb`, and `replication-neo4j`.
 
 7. Option validation unification
 - Added shared `OptionValidation` helper in `replication-core`.
