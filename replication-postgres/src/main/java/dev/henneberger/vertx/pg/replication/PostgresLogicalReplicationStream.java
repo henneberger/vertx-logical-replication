@@ -38,6 +38,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -367,8 +369,8 @@ public class PostgresLogicalReplicationStream implements ReplicationStream<Postg
           continue;
         }
 
-        String message = decodeWalMessage(buffer);
-        if (message == null || message.isBlank()) {
+        byte[] payload = decodeWalPayload(buffer);
+        if (payload.length == 0) {
           emitStatus(stream);
           continue;
         }
@@ -376,9 +378,9 @@ public class PostgresLogicalReplicationStream implements ReplicationStream<Postg
         String receiveLsn = stream.getLastReceiveLSN() == null ? null : stream.getLastReceiveLSN().asString();
         List<PostgresChangeEvent> events;
         try {
-          events = options.getChangeDecoder().decode(message, receiveLsn);
+          events = options.getChangeDecoder().decode(payload, receiveLsn);
         } catch (RuntimeException parseError) {
-          emitParseFailure(message, parseError);
+          emitParseFailure(payloadForLogging(payload), parseError);
           throw parseError;
         }
 
@@ -401,19 +403,34 @@ public class PostgresLogicalReplicationStream implements ReplicationStream<Postg
       .withSlotName(slotName)
       .withStartPosition(lsn);
 
-    if (options.getPluginOptions().isEmpty() && "wal2json".equalsIgnoreCase(options.getPlugin())) {
-      builder.withSlotOption("include-xids", false)
-        .withSlotOption("include-timestamp", true)
-        .withSlotOption("include-types", false)
-        .withSlotOption("include-typmod", false)
-        .withSlotOption("format-version", 2);
-    } else {
-      for (Map.Entry<String, Object> entry : options.getPluginOptions().entrySet()) {
-        applySlotOption(builder, entry.getKey(), entry.getValue());
-      }
+    Map<String, Object> slotOptions = resolveSlotOptions();
+    for (Map.Entry<String, Object> entry : slotOptions.entrySet()) {
+      applySlotOption(builder, entry.getKey(), entry.getValue());
     }
 
     return builder.start();
+  }
+
+  private Map<String, Object> resolveSlotOptions() {
+    Map<String, Object> optionsMap = new LinkedHashMap<>(options.getPluginOptions());
+    String plugin = options.getPlugin();
+    if ("wal2json".equalsIgnoreCase(plugin) && optionsMap.isEmpty()) {
+      optionsMap.put("include-xids", false);
+      optionsMap.put("include-timestamp", true);
+      optionsMap.put("include-types", false);
+      optionsMap.put("include-typmod", false);
+      optionsMap.put("format-version", 2);
+      return optionsMap;
+    }
+    if ("pgoutput".equalsIgnoreCase(plugin)) {
+      if (!optionsMap.containsKey("proto_version")) {
+        optionsMap.put("proto_version", 1);
+      }
+      if (!optionsMap.containsKey("publication_names")) {
+        optionsMap.put("publication_names", options.getPublicationName());
+      }
+    }
+    return optionsMap;
   }
 
   private void applySlotOption(ChainedLogicalStreamBuilder builder, String key, Object value) {
@@ -651,10 +668,31 @@ public class PostgresLogicalReplicationStream implements ReplicationStream<Postg
     return message != null && message.contains("already exists");
   }
 
-  private static String decodeWalMessage(ByteBuffer buffer) {
+  private static byte[] decodeWalPayload(ByteBuffer buffer) {
     byte[] bytes = new byte[buffer.remaining()];
     buffer.get(bytes);
-    return new String(bytes, StandardCharsets.UTF_8);
+    return bytes;
+  }
+
+  private static String payloadForLogging(byte[] payload) {
+    if (payload.length == 0) {
+      return "";
+    }
+    boolean mostlyText = true;
+    for (byte b : payload) {
+      int c = b & 0xff;
+      if (c == 9 || c == 10 || c == 13) {
+        continue;
+      }
+      if (c < 32 || c > 126) {
+        mostlyText = false;
+        break;
+      }
+    }
+    if (mostlyText) {
+      return new String(payload, StandardCharsets.UTF_8);
+    }
+    return "base64:" + Base64.getEncoder().encodeToString(payload);
   }
 
   private void transition(ReplicationStreamState nextState, Throwable cause, long attempt) {
@@ -718,6 +756,7 @@ public class PostgresLogicalReplicationStream implements ReplicationStream<Postg
       checkExistingSlot(conn, issues);
       checkSlotLag(conn, issues);
       checkPluginExtensionVisibility(conn, issues);
+      checkPgOutputPublication(conn, issues);
     } catch (Exception e) {
       issues.add(new PreflightIssue(
         PreflightIssue.Severity.ERROR,
@@ -837,6 +876,9 @@ public class PostgresLogicalReplicationStream implements ReplicationStream<Postg
   }
 
   private void checkPluginExtensionVisibility(java.sql.Connection conn, List<PreflightIssue> issues) throws SQLException {
+    if ("pgoutput".equalsIgnoreCase(options.getPlugin())) {
+      return;
+    }
     try (PreparedStatement statement = conn.prepareStatement(
       "SELECT 1 FROM pg_available_extensions WHERE name = ?")) {
       statement.setString(1, options.getPlugin());
@@ -847,6 +889,31 @@ public class PostgresLogicalReplicationStream implements ReplicationStream<Postg
             "PLUGIN_NOT_VISIBLE_AS_EXTENSION",
             "Plugin '" + options.getPlugin() + "' is not listed in pg_available_extensions",
             "This may be normal for output plugins; verify plugin availability on the server if startup fails."
+          ));
+        }
+      }
+    }
+  }
+
+  private void checkPgOutputPublication(java.sql.Connection conn, List<PreflightIssue> issues) throws SQLException {
+    if (!"pgoutput".equalsIgnoreCase(options.getPlugin())) {
+      return;
+    }
+    String publication = options.getPublicationName();
+    if (publication == null || publication.isBlank()) {
+      return;
+    }
+    try (PreparedStatement statement = conn.prepareStatement(
+      "SELECT 1 FROM pg_publication WHERE pubname = ?")) {
+      statement.setString(1, publication);
+      try (ResultSet rs = statement.executeQuery()) {
+        if (!rs.next()) {
+          issues.add(new PreflightIssue(
+            PreflightIssue.Severity.ERROR,
+            "PUBLICATION_MISSING",
+            "Publication '" + publication + "' does not exist",
+            "Create the publication before starting replication, for example: CREATE PUBLICATION "
+              + publication + " FOR TABLE ...;"
           ));
         }
       }

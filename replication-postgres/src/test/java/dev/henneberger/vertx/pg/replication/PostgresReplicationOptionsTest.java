@@ -37,6 +37,7 @@ class PostgresReplicationOptionsTest {
       .put("passwordEnv", "PG_PASSWORD")
       .put("ssl", true)
       .put("slotName", "app_slot")
+      .put("publicationName", "app_pub")
       .put("plugin", "wal2json")
       .put("pluginOptions", new JsonObject().put("include-timestamp", true))
       .put("preflightEnabled", true)
@@ -58,6 +59,7 @@ class PostgresReplicationOptionsTest {
     assertEquals("PG_PASSWORD", options.getPasswordEnv());
     assertTrue(options.getSsl());
     assertEquals("app_slot", options.getSlotName());
+    assertEquals("app_pub", options.getPublicationName());
     assertEquals("wal2json", options.getPlugin());
     assertTrue(options.isPreflightEnabled());
     assertFalse(options.isAutoStart());
@@ -68,6 +70,7 @@ class PostgresReplicationOptionsTest {
     JsonObject out = options.toJson();
     assertEquals("db.internal", out.getString("host"));
     assertEquals(15432, out.getInteger("port"));
+    assertEquals("app_pub", out.getString("publicationName"));
     assertFalse(out.getBoolean("autoStart"));
     assertEquals(2, out.getInteger("maxConcurrentDispatch"));
     assertTrue(out.getJsonObject("retryPolicy").containsKey("initialDelayMs"));
@@ -120,6 +123,20 @@ class PostgresReplicationOptionsTest {
       .setSlotName("slot")
       .setPlugin("wal2json")
       .setChangeDecoder(unsupported);
+
+    assertThrows(IllegalArgumentException.class, options::validate);
+  }
+
+  @Test
+  void requiresPublicationForPgOutput() {
+    PostgresReplicationOptions options = new PostgresReplicationOptions()
+      .setHost("localhost")
+      .setPort(5432)
+      .setDatabase("db")
+      .setUser("u")
+      .setSlotName("slot")
+      .setPlugin("pgoutput")
+      .setChangeDecoder(new PgOutputChangeDecoder());
 
     assertThrows(IllegalArgumentException.class, options::validate);
   }

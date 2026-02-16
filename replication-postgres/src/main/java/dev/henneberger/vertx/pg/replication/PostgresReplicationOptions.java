@@ -48,6 +48,7 @@ public class PostgresReplicationOptions {
   private String passwordEnv;
   private boolean ssl;
   private String slotName;
+  private String publicationName;
 
   private String plugin = DEFAULT_PLUGIN;
   private Map<String, Object> pluginOptions = new LinkedHashMap<>();
@@ -76,6 +77,7 @@ public class PostgresReplicationOptions {
     this.passwordEnv = other.passwordEnv;
     this.ssl = other.ssl;
     this.slotName = other.slotName;
+    this.publicationName = other.publicationName;
     this.plugin = other.plugin;
     this.pluginOptions = new LinkedHashMap<>(other.pluginOptions);
     this.retryPolicy = other.retryPolicy.copy();
@@ -155,6 +157,15 @@ public class PostgresReplicationOptions {
 
   public PostgresReplicationOptions setSlotName(String slotName) {
     this.slotName = slotName;
+    return this;
+  }
+
+  public String getPublicationName() {
+    return publicationName;
+  }
+
+  public PostgresReplicationOptions setPublicationName(String publicationName) {
+    this.publicationName = publicationName;
     return this;
   }
 
@@ -262,6 +273,14 @@ public class PostgresReplicationOptions {
       throw new IllegalArgumentException(
         "changeDecoder " + decoder.getClass().getSimpleName() + " does not support plugin " + plugin);
     }
+    if ("pgoutput".equalsIgnoreCase(plugin)) {
+      Object configuredPublication = pluginOptions.get("publication_names");
+      if ((publicationName == null || publicationName.isBlank())
+        && (configuredPublication == null || String.valueOf(configuredPublication).isBlank())) {
+        throw new IllegalArgumentException(
+          "publicationName (or pluginOptions.publication_names) is required for plugin pgoutput");
+      }
+    }
     OptionValidation.requireMin("maxConcurrentDispatch", maxConcurrentDispatch, 1);
   }
 
@@ -270,6 +289,7 @@ public class PostgresReplicationOptions {
     port = DEFAULT_PORT;
     ssl = false;
     plugin = DEFAULT_PLUGIN;
+    publicationName = null;
     pluginOptions = new LinkedHashMap<>();
     retryPolicy = RetryPolicy.disabled();
     preflightEnabled = false;
