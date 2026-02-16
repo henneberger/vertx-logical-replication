@@ -8,6 +8,11 @@ import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.annotations.GenIgnore;
 import io.vertx.codegen.json.annotations.JsonGen;
 import io.vertx.core.json.JsonObject;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @DataObject
@@ -24,6 +29,9 @@ public class CockroachDbReplicationOptions {
   private String password;
   private String passwordEnv;
   private String sourceTable;
+  private String initialCursor;
+  private Map<String, Object> changefeedOptions;
+  private List<String> cliCommand;
   private String positionColumn;
   private String operationColumn;
   private String beforeColumn;
@@ -48,6 +56,9 @@ public class CockroachDbReplicationOptions {
     this.password = other.password;
     this.passwordEnv = other.passwordEnv;
     this.sourceTable = other.sourceTable;
+    this.initialCursor = other.initialCursor;
+    this.changefeedOptions = new LinkedHashMap<>(other.changefeedOptions);
+    this.cliCommand = new ArrayList<>(other.cliCommand);
     this.positionColumn = other.positionColumn;
     this.operationColumn = other.operationColumn;
     this.beforeColumn = other.beforeColumn;
@@ -76,6 +87,18 @@ public class CockroachDbReplicationOptions {
   public CockroachDbReplicationOptions setPasswordEnv(String passwordEnv) { this.passwordEnv = passwordEnv; return this; }
   public String getSourceTable() { return sourceTable; }
   public CockroachDbReplicationOptions setSourceTable(String sourceTable) { this.sourceTable = sourceTable; return this; }
+  public String getInitialCursor() { return initialCursor; }
+  public CockroachDbReplicationOptions setInitialCursor(String initialCursor) { this.initialCursor = initialCursor; return this; }
+  public Map<String, Object> getChangefeedOptions() { return Collections.unmodifiableMap(changefeedOptions); }
+  public CockroachDbReplicationOptions setChangefeedOptions(Map<String, Object> changefeedOptions) {
+    this.changefeedOptions = changefeedOptions == null ? new LinkedHashMap<>() : new LinkedHashMap<>(changefeedOptions);
+    return this;
+  }
+  public List<String> getCliCommand() { return Collections.unmodifiableList(cliCommand); }
+  public CockroachDbReplicationOptions setCliCommand(List<String> cliCommand) {
+    this.cliCommand = cliCommand == null ? new ArrayList<>() : new ArrayList<>(cliCommand);
+    return this;
+  }
   public String getPositionColumn() { return positionColumn; }
   public CockroachDbReplicationOptions setPositionColumn(String positionColumn) { this.positionColumn = positionColumn; return this; }
   public String getOperationColumn() { return operationColumn; }
@@ -115,10 +138,9 @@ public class CockroachDbReplicationOptions {
     OptionValidation.require("database", database);
     OptionValidation.require("user", user);
     OptionValidation.require("sourceTable", sourceTable);
-    OptionValidation.require("positionColumn", positionColumn);
-    OptionValidation.requireMin("pollIntervalMs", pollIntervalMs, 1);
-    OptionValidation.requireMin("batchSize", batchSize, 1);
     OptionValidation.requireMin("maxConcurrentDispatch", maxConcurrentDispatch, 1);
+    Objects.requireNonNull(changefeedOptions, "changefeedOptions");
+    Objects.requireNonNull(cliCommand, "cliCommand");
     Objects.requireNonNull(retryPolicy, "retryPolicy").validate();
     Objects.requireNonNull(lsnStore, "lsnStore");
   }
@@ -126,6 +148,9 @@ public class CockroachDbReplicationOptions {
   private void init() {
     host = DEFAULT_HOST;
     port = DEFAULT_PORT;
+    initialCursor = null;
+    changefeedOptions = new LinkedHashMap<>();
+    cliCommand = new ArrayList<>();
     positionColumn = "position";
     operationColumn = "operation";
     beforeColumn = "before_json";

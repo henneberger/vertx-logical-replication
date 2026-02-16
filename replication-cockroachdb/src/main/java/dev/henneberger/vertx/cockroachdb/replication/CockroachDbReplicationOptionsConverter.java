@@ -1,6 +1,7 @@
 package dev.henneberger.vertx.cockroachdb.replication;
 
 import dev.henneberger.vertx.replication.core.RetryPolicy;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.time.Duration;
 
@@ -16,6 +17,11 @@ final class CockroachDbReplicationOptionsConverter {
     if (json.containsKey("password")) options.setPassword(json.getString("password"));
     if (json.containsKey("passwordEnv")) options.setPasswordEnv(json.getString("passwordEnv"));
     if (json.containsKey("sourceTable")) options.setSourceTable(json.getString("sourceTable"));
+    if (json.containsKey("initialCursor")) options.setInitialCursor(json.getString("initialCursor"));
+    JsonObject changefeedOptions = json.getJsonObject("changefeedOptions");
+    if (changefeedOptions != null) options.setChangefeedOptions(changefeedOptions.getMap());
+    JsonArray cliCommand = json.getJsonArray("cliCommand");
+    if (cliCommand != null) options.setCliCommand(cliCommand.getList());
     if (json.containsKey("positionColumn")) options.setPositionColumn(json.getString("positionColumn"));
     if (json.containsKey("operationColumn")) options.setOperationColumn(json.getString("operationColumn"));
     if (json.containsKey("beforeColumn")) options.setBeforeColumn(json.getString("beforeColumn"));
@@ -47,6 +53,9 @@ final class CockroachDbReplicationOptionsConverter {
     json.put("password", options.getPassword());
     json.put("passwordEnv", options.getPasswordEnv());
     json.put("sourceTable", options.getSourceTable());
+    json.put("initialCursor", options.getInitialCursor());
+    json.put("changefeedOptions", new JsonObject(options.getChangefeedOptions()));
+    json.put("cliCommand", new JsonArray(options.getCliCommand()));
     json.put("positionColumn", options.getPositionColumn());
     json.put("operationColumn", options.getOperationColumn());
     json.put("beforeColumn", options.getBeforeColumn());

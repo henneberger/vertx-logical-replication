@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.vertx.core.json.JsonObject;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class CockroachDbReplicationOptionsTest {
@@ -18,6 +19,9 @@ class CockroachDbReplicationOptionsTest {
       .put("user", "root")
       .put("passwordEnv", "COCKROACH_PASSWORD")
       .put("sourceTable", "cdc_orders")
+      .put("initialCursor", "2026-02-16T00:00:00Z")
+      .put("changefeedOptions", new JsonObject().put("resolved", "5s"))
+      .put("cliCommand", List.of("cockroach", "sql", "--insecure", "--format=csv", "-e"))
       .put("positionColumn", "position")
       .put("operationColumn", "operation")
       .put("pollIntervalMs", 750)
@@ -27,10 +31,15 @@ class CockroachDbReplicationOptionsTest {
     assertEquals("roach.internal", options.getHost());
     assertEquals(26257, options.getPort());
     assertEquals("cdc_orders", options.getSourceTable());
+    assertEquals("2026-02-16T00:00:00Z", options.getInitialCursor());
+    assertEquals("5s", options.getChangefeedOptions().get("resolved"));
+    assertEquals("cockroach", options.getCliCommand().get(0));
     assertEquals(750, options.getPollIntervalMs());
 
     JsonObject json = options.toJson();
     assertEquals("roach.internal", json.getString("host"));
+    assertEquals("2026-02-16T00:00:00Z", json.getString("initialCursor"));
+    assertEquals("cockroach", json.getJsonArray("cliCommand").getString(0));
     assertEquals(2, json.getInteger("maxConcurrentDispatch"));
   }
 
@@ -47,6 +56,6 @@ class CockroachDbReplicationOptionsTest {
     assertTrue(options.isAutoStart());
 
     assertThrows(IllegalArgumentException.class,
-      () -> options.setBatchSize(0).validate());
+      () -> options.setMaxConcurrentDispatch(0).validate());
   }
 }

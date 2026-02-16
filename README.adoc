@@ -48,12 +48,22 @@ Support by connector:
 - MongoDB (`replication-mongodb`): *True CDC / native change streams* via `watch()`.
 - SQL Server (`replication-sqlserver`): *Polling CDC adapter* over SQL Server CDC tables/functions.
 - MariaDB (`replication-mariadb`): *Polling CDC adapter* (JDBC polling model).
-- CockroachDB (`replication-cockroachdb`): *Polling CDC adapter* (JDBC polling model).
+- CockroachDB (`replication-cockroachdb`): *True CDC / changefeed stream* via sinkless changefeed for dev/test/prototype usage (non-production), using Cockroach SQL client streaming.
 - Oracle (`replication-oracle`): *Polling CDC adapter* (JDBC polling model).
 - Db2 (`replication-db2`): *Polling CDC adapter* (JDBC polling model).
 - Cassandra (`replication-cassandra`): *Polling CDC adapter* over source/event rows.
 - ScyllaDB (`replication-scylladb`): *Polling CDC adapter* over source/event rows.
 - Neo4j (`replication-neo4j`): *Polling CDC adapter* over configured event query.
+
+[NOTE]
+====
+CockroachDB connector tradeoffs (current implementation):
+
+- It is true CDC (sinkless changefeed), not polling.
+- It is intended for dev/test/prototype environments, not production.
+- It streams through the Cockroach SQL CLI process (`cockroach sql`), so runtime hosts must have CLI access and permissions to run the command.
+- For production-grade Cockroach CDC, prefer managed sink integrations (for example Kafka/webhook) outside this adapter.
+====
 
 == Requirements
 

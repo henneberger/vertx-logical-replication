@@ -9,7 +9,7 @@ This manual uses PostgreSQL as the full walkthrough and lists all supported conn
 * SQL Server CDC polling
 * MySQL binlog CDC
 * MariaDB CDC adapter (currently polling)
-* CockroachDB CDC adapter (currently polling)
+* CockroachDB sinkless changefeed CDC (dev/test/prototype)
 * Oracle CDC adapter (currently polling)
 * Db2 CDC adapter (currently polling)
 * Cassandra CDC adapter (DB-native)
@@ -73,9 +73,9 @@ If you are using Maven, add the dependency for the connector you need:
 
 | CockroachDB
 | `vertx-cockroachdb-cdc-replication`
-| `POLLING`
-| Polling CDC
-| Supported. Polling adapter today; planned migration to changefeed stream mode.
+| `LOG_STREAM`
+| True log-stream
+| Supported for non-production usage. Uses sinkless changefeed stream semantics.
 
 | Oracle
 | `vertx-oracle-cdc-replication`
@@ -193,7 +193,7 @@ Non-PostgreSQL connectors have database-specific setup differences. Minimum chec
 
 * SQL Server: enable SQL Server Agent, `sp_cdc_enable_db`, and table-level CDC/capture instance.
 * MySQL and MariaDB: enable binlog, use ROW format, and verify connector/auth compatibility.
-* CockroachDB: verify CDC/changefeed permissions and sink/source compatibility used by the adapter.
+* CockroachDB: verify CDC/changefeed permissions and Cockroach SQL client availability used by the adapter.
 * Oracle: verify required CDC/log mining prerequisites and connector principal privileges.
 * Db2: verify CDC/change data capture setup and polling/query privileges.
 * Cassandra and ScyllaDB: verify CDC is enabled at table/keyspace level and retention windows match consumer lag.
