@@ -31,6 +31,28 @@ This project provides a shared replication core plus database-specific connector
 - `replication-mongodb`
 - `replication-neo4j`
 
+[NOTE]
+====
+Support language we use with customers:
+
+- *True CDC / logical replication*: connector reads the database change log or native change stream directly.
+- *Polling CDC adapter*: connector polls change rows/events on an interval (`pollIntervalMs`); this is CDC-style ingestion, but not direct log-streaming replication.
+====
+
+Support by connector:
+
+- PostgreSQL (`replication-postgres`): *True CDC / logical replication* via PostgreSQL logical replication (`wal2json`).
+- MySQL (`replication-mysql`): *True CDC / log-based capture* via MySQL binlog streaming.
+- MongoDB (`replication-mongodb`): *True CDC / native change streams* via `watch()`.
+- SQL Server (`replication-sqlserver`): *Polling CDC adapter* over SQL Server CDC tables/functions.
+- MariaDB (`replication-mariadb`): *Polling CDC adapter* (JDBC polling model).
+- CockroachDB (`replication-cockroachdb`): *Polling CDC adapter* (JDBC polling model).
+- Oracle (`replication-oracle`): *Polling CDC adapter* (JDBC polling model).
+- Db2 (`replication-db2`): *Polling CDC adapter* (JDBC polling model).
+- Cassandra (`replication-cassandra`): *Polling CDC adapter* over source/event rows.
+- ScyllaDB (`replication-scylladb`): *Polling CDC adapter* over source/event rows.
+- Neo4j (`replication-neo4j`): *Polling CDC adapter* over configured event query.
+
 == Requirements
 
 - JDK 11+
