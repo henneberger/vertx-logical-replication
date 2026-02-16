@@ -115,6 +115,44 @@ stream.close();
 vertx.close();
 ----
 
+== LSN Store and Checkpointing
+
+`LsnStore` controls where stream checkpoints are persisted so connectors can resume after restarts.
+
+Default behavior:
+
+- Most connectors default to `NoopLsnStore`, which does not persist checkpoints.
+- With `NoopLsnStore`, a restart resumes from connector-specific defaults instead of the last committed checkpoint.
+- For production, configure a durable store.
+
+Available stores in `replication-core`:
+
+- `InMemoryLsnStore`: in-process only, lost on JVM restart.
+- `LocalMapLsnStore`: Vert.x local shared-data map, not durable across process restarts.
+- `FileLsnStore`: durable JSON file persisted on disk.
+- `PrefixedLsnStore`: decorator that namespaces keys for multi-tenant or multi-env deployments.
+
+Example (PostgreSQL + durable file-backed checkpoints):
+
+[source,java]
+----
+Vertx vertx = Vertx.vertx();
+
+LsnStore lsnStore = new PrefixedLsnStore(
+  new FileLsnStore(Paths.get("var/checkpoints/replication-lsn.json")),
+  "prod:"
+);
+
+PostgresReplicationOptions options = new PostgresReplicationOptions()
+  .setHost("localhost")
+  .setPort(5432)
+  .setDatabase("app")
+  .setUser("app")
+  .setPassword("secret")
+  .setSlotName("vertx_app_slot")
+  .setLsnStore(lsnStore);
+----
+
 == Build and Test
 
 [source,bash]
