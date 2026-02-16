@@ -1,6 +1,10 @@
 == PostgreSQL
 
-The PostgreSQL connector consumes logical replication messages produced by the `wal2json` plugin and maps them to `PostgresChangeEvent`.
+The PostgreSQL connector consumes logical replication messages and maps them to `PostgresChangeEvent`.
+Supported plugin/decoder paths include:
+
+* `wal2json` + `Wal2JsonChangeDecoder` (default)
+* `pgoutput` + `PgOutputChangeDecoder`
 
 === Requirements
 

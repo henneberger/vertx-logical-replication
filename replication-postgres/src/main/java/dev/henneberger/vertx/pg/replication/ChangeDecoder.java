@@ -16,6 +16,7 @@
 
 package dev.henneberger.vertx.pg.replication;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -24,6 +25,10 @@ import java.util.List;
 public interface ChangeDecoder {
 
   List<PostgresChangeEvent> decode(String payload, String fallbackLsn);
+
+  default List<PostgresChangeEvent> decode(byte[] payload, String fallbackLsn) {
+    return decode(new String(payload, StandardCharsets.UTF_8), fallbackLsn);
+  }
 
   default boolean supportsPlugin(String plugin) {
     return true;

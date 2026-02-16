@@ -5,7 +5,7 @@ At the heart of this project is a set of APIs for consuming database changes as 
 
 This manual uses PostgreSQL as the full walkthrough and lists all supported connectors and caveats on this page:
 
-* PostgreSQL logical replication (`wal2json`)
+* PostgreSQL logical replication (`wal2json`, `pgoutput`)
 * SQL Server CDC polling
 * MySQL binlog CDC
 * MariaDB CDC adapter (currently polling)
@@ -51,7 +51,7 @@ If you are using Maven, add the dependency for the connector you need:
 | `vertx-pg-logical-replication`
 | `LOG_STREAM`
 | True log-stream
-| Full walkthrough in this manual (`wal2json`).
+| Full walkthrough in this manual (`wal2json` and `pgoutput`).
 
 | SQL Server
 | `vertx-sqlserver-cdc-replication`

@@ -55,6 +55,9 @@ final class PostgresReplicationOptionsConverter {
     if (json.containsKey("slotName")) {
       options.setSlotName(json.getString("slotName"));
     }
+    if (json.containsKey("publicationName")) {
+      options.setPublicationName(json.getString("publicationName"));
+    }
     if (json.containsKey("plugin")) {
       options.setPlugin(json.getString("plugin"));
     }
@@ -95,6 +98,7 @@ final class PostgresReplicationOptionsConverter {
     json.put("passwordEnv", options.getPasswordEnv());
     json.put("ssl", options.getSsl());
     json.put("slotName", options.getSlotName());
+    json.put("publicationName", options.getPublicationName());
     json.put("plugin", options.getPlugin());
 
     Map<String, Object> pluginOptions = options.getPluginOptions();

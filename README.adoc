@@ -43,7 +43,7 @@ Support language we use with customers:
 
 Support by connector:
 
-- PostgreSQL (`replication-postgres`): *True CDC / logical replication* via PostgreSQL logical replication (`wal2json`).
+- PostgreSQL (`replication-postgres`): *True CDC / logical replication* via PostgreSQL logical decoding (`wal2json` and `pgoutput`).
 - MySQL (`replication-mysql`): *True CDC / log-based capture* via MySQL binlog streaming.
 - MongoDB (`replication-mongodb`): *True CDC / native change streams* via `watch()`.
 - SQL Server (`replication-sqlserver`): *Polling CDC adapter* over SQL Server CDC tables/functions.
