@@ -16,6 +16,8 @@ public class MariaDbReplicationOptions {
 
   public static final String DEFAULT_HOST = "localhost";
   public static final int DEFAULT_PORT = 3306;
+  public static final long DEFAULT_SERVER_ID = 1002L;
+  public static final long DEFAULT_CONNECT_TIMEOUT_MS = 10000L;
 
   private String host;
   private int port;
@@ -23,6 +25,8 @@ public class MariaDbReplicationOptions {
   private String user;
   private String password;
   private String passwordEnv;
+  private long serverId;
+  private long connectTimeoutMs;
   private String sourceTable;
   private String positionColumn;
   private String operationColumn;
@@ -47,6 +51,8 @@ public class MariaDbReplicationOptions {
     this.user = other.user;
     this.password = other.password;
     this.passwordEnv = other.passwordEnv;
+    this.serverId = other.serverId;
+    this.connectTimeoutMs = other.connectTimeoutMs;
     this.sourceTable = other.sourceTable;
     this.positionColumn = other.positionColumn;
     this.operationColumn = other.operationColumn;
@@ -74,6 +80,10 @@ public class MariaDbReplicationOptions {
   public MariaDbReplicationOptions setPassword(String password) { this.password = password; return this; }
   public String getPasswordEnv() { return passwordEnv; }
   public MariaDbReplicationOptions setPasswordEnv(String passwordEnv) { this.passwordEnv = passwordEnv; return this; }
+  public long getServerId() { return serverId; }
+  public MariaDbReplicationOptions setServerId(long serverId) { this.serverId = serverId; return this; }
+  public long getConnectTimeoutMs() { return connectTimeoutMs; }
+  public MariaDbReplicationOptions setConnectTimeoutMs(long connectTimeoutMs) { this.connectTimeoutMs = connectTimeoutMs; return this; }
   public String getSourceTable() { return sourceTable; }
   public MariaDbReplicationOptions setSourceTable(String sourceTable) { this.sourceTable = sourceTable; return this; }
   public String getPositionColumn() { return positionColumn; }
@@ -114,10 +124,9 @@ public class MariaDbReplicationOptions {
     OptionValidation.requirePort(port);
     OptionValidation.require("database", database);
     OptionValidation.require("user", user);
+    OptionValidation.requireMin("serverId", serverId, 1);
+    OptionValidation.requireMin("connectTimeoutMs", connectTimeoutMs, 1);
     OptionValidation.require("sourceTable", sourceTable);
-    OptionValidation.require("positionColumn", positionColumn);
-    OptionValidation.requireMin("pollIntervalMs", pollIntervalMs, 1);
-    OptionValidation.requireMin("batchSize", batchSize, 1);
     OptionValidation.requireMin("maxConcurrentDispatch", maxConcurrentDispatch, 1);
     Objects.requireNonNull(retryPolicy, "retryPolicy").validate();
     Objects.requireNonNull(lsnStore, "lsnStore");
@@ -126,6 +135,8 @@ public class MariaDbReplicationOptions {
   private void init() {
     host = DEFAULT_HOST;
     port = DEFAULT_PORT;
+    serverId = DEFAULT_SERVER_ID;
+    connectTimeoutMs = DEFAULT_CONNECT_TIMEOUT_MS;
     positionColumn = "position";
     operationColumn = "operation";
     beforeColumn = "before_json";

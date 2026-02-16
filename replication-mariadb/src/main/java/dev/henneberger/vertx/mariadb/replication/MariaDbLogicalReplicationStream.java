@@ -1,17 +1,33 @@
 package dev.henneberger.vertx.mariadb.replication;
 
-import dev.henneberger.vertx.replication.core.AbstractJdbcPollingReplicationStream;
+import com.github.shyiko.mysql.binlog.BinaryLogClient;
+import com.github.shyiko.mysql.binlog.event.DeleteRowsEventData;
+import com.github.shyiko.mysql.binlog.event.Event;
+import com.github.shyiko.mysql.binlog.event.EventData;
+import com.github.shyiko.mysql.binlog.event.EventHeaderV4;
+import com.github.shyiko.mysql.binlog.event.TableMapEventData;
+import com.github.shyiko.mysql.binlog.event.UpdateRowsEventData;
+import com.github.shyiko.mysql.binlog.event.WriteRowsEventData;
+import dev.henneberger.vertx.replication.core.AbstractWorkerReplicationStream;
+import dev.henneberger.vertx.replication.core.AdapterMode;
 import dev.henneberger.vertx.replication.core.ChangeConsumer;
 import dev.henneberger.vertx.replication.core.ChangeFilter;
-import dev.henneberger.vertx.replication.core.ReplicationSubscription;
+import dev.henneberger.vertx.replication.core.LsnStore;
+import dev.henneberger.vertx.replication.core.PreflightIssue;
+import dev.henneberger.vertx.replication.core.PreflightReport;
+import dev.henneberger.vertx.replication.core.ReplicationStateChange;
 import dev.henneberger.vertx.replication.core.RetryPolicy;
+import dev.henneberger.vertx.replication.core.SubscriptionRegistration;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
+import java.io.Serializable;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -19,20 +35,22 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MariaDbLogicalReplicationStream extends AbstractJdbcPollingReplicationStream<MariaDbChangeEvent> {
+public class MariaDbLogicalReplicationStream extends AbstractWorkerReplicationStream<MariaDbChangeEvent> {
+
   private static final Logger LOG = LoggerFactory.getLogger(MariaDbLogicalReplicationStream.class);
 
   private final MariaDbReplicationOptions options;
+  private final Map<Long, TableRef> tableRefs = new HashMap<>();
+
+  private volatile BinaryLogClient client;
 
   public MariaDbLogicalReplicationStream(Vertx vertx, MariaDbReplicationOptions options) {
     super(vertx);
@@ -43,60 +61,45 @@ public class MariaDbLogicalReplicationStream extends AbstractJdbcPollingReplicat
   public MariaDbChangeSubscription subscribe(MariaDbChangeFilter filter,
                                              MariaDbChangeConsumer eventConsumer,
                                              Handler<Throwable> errorHandler) {
-    ReplicationSubscription subscription = registerSubscription(filter, eventConsumer, errorHandler, true);
-    return subscription::cancel;
+    return () -> registerSubscription(filter, eventConsumer, errorHandler, true).cancel();
+  }
+
+  public SubscriptionRegistration startAndSubscribe(MariaDbChangeFilter filter,
+                                                    Handler<MariaDbChangeEvent> eventHandler,
+                                                    Handler<Throwable> errorHandler) {
+    Objects.requireNonNull(eventHandler, "eventHandler");
+    return startAndSubscribe(filter, event -> {
+      eventHandler.handle(event);
+      return Future.succeededFuture();
+    }, errorHandler);
+  }
+
+  public SubscriptionRegistration startAndSubscribe(MariaDbChangeFilter filter,
+                                                    MariaDbChangeConsumer eventConsumer,
+                                                    Handler<Throwable> errorHandler) {
+    return startAndSubscribe((ChangeFilter<MariaDbChangeEvent>) filter, eventConsumer, errorHandler);
   }
 
   @Override
-  public ReplicationSubscription subscribe(ChangeFilter<MariaDbChangeEvent> filter,
-                                           ChangeConsumer<MariaDbChangeEvent> eventConsumer,
-                                           Handler<Throwable> errorHandler) {
-    return registerSubscription(filter, eventConsumer, errorHandler, true);
+  public MariaDbChangeSubscription subscribe(ChangeFilter<MariaDbChangeEvent> filter,
+                                             ChangeConsumer<MariaDbChangeEvent> eventConsumer,
+                                             Handler<Throwable> errorHandler) {
+    return () -> registerSubscription(filter, eventConsumer, errorHandler, true).cancel();
+  }
+
+  @Override
+  public AdapterMode adapterMode() {
+    return AdapterMode.LOG_STREAM;
   }
 
   @Override
   protected String streamName() {
-    return "mariadb-cdc";
-  }
-
-  @Override
-  protected void logStreamFailure(Throwable error) {
-    LOG.error("MariaDb CDC stream failed for {}", options.getSourceTable(), error);
-  }
-
-  @Override
-  protected String sourceTable() {
-    return options.getSourceTable();
-  }
-
-  @Override
-  protected String positionColumn() {
-    return options.getPositionColumn();
-  }
-
-  @Override
-  protected String rowLimitClause() {
-    return "LIMIT ?";
-  }
-
-  @Override
-  protected int batchSize() {
-    return options.getBatchSize();
+    return "mariadb-cdc-" + options.getDatabase();
   }
 
   @Override
   protected int maxConcurrentDispatch() {
     return options.getMaxConcurrentDispatch();
-  }
-
-  @Override
-  protected long pollIntervalMs() {
-    return options.getPollIntervalMs();
-  }
-
-  @Override
-  protected RetryPolicy retryPolicy() {
-    return options.getRetryPolicy();
   }
 
   @Override
@@ -110,104 +113,214 @@ public class MariaDbLogicalReplicationStream extends AbstractJdbcPollingReplicat
   }
 
   @Override
-  protected Connection openConnection() throws Exception {
-    String url = "jdbc:mariadb://" + options.getHost() + ":" + options.getPort() + "/" + options.getDatabase();
-    return DriverManager.getConnection(url, options.getUser(), resolvePassword());
+  protected RetryPolicy retryPolicy() {
+    return options.getRetryPolicy();
   }
 
   @Override
-  protected MariaDbChangeEvent mapRow(ResultSet rs) throws Exception {
-    Map<String, Object> row = extractRow(rs);
-    String operationRaw = asString(row.get(options.getOperationColumn()));
-    MariaDbChangeEvent.Operation operation = mapOperation(operationRaw);
-    Map<String, Object> before = parseMap(row.get(options.getBeforeColumn()));
-    Map<String, Object> after = parseMap(row.get(options.getAfterColumn()));
-    if (after.isEmpty()) {
-      after = new LinkedHashMap<>(row);
-      after.remove(options.getOperationColumn());
-      after.remove(options.getBeforeColumn());
-      after.remove(options.getAfterColumn());
+  protected LsnStore checkpointStore() {
+    return options.getLsnStore();
+  }
+
+  @Override
+  protected PreflightReport runPreflightChecks() {
+    List<PreflightIssue> issues = new ArrayList<>();
+    try (Connection conn = openConnection()) {
+      String logBin = readVariable(conn, "log_bin");
+      if (!"ON".equalsIgnoreCase(logBin)) {
+        issues.add(new PreflightIssue(
+          PreflightIssue.Severity.ERROR,
+          "LOG_BIN_DISABLED",
+          "log_bin is '" + logBin + "'",
+          "Enable binary logging (log_bin=ON)."
+        ));
+      }
+      String format = readVariable(conn, "binlog_format");
+      if (!"ROW".equalsIgnoreCase(format)) {
+        issues.add(new PreflightIssue(
+          PreflightIssue.Severity.WARNING,
+          "BINLOG_FORMAT_NOT_ROW",
+          "binlog_format is '" + format + "'",
+          "Use binlog_format=ROW for deterministic CDC."
+        ));
+      }
+    } catch (Exception e) {
+      issues.add(new PreflightIssue(
+        PreflightIssue.Severity.ERROR,
+        "CONNECTION_FAILED",
+        "Could not connect to MariaDB: " + e.getMessage(),
+        "Verify host, port, database, user, password, and replication permissions."
+      ));
     }
-    Instant commitTs = toInstant(row.get(options.getCommitTimestampColumn()));
-    String position = asString(row.get(options.getPositionColumn()));
-    Map<String, Object> metadata = new LinkedHashMap<>();
-    metadata.put("adapter", "mariadb");
-    metadata.put("rawOperation", operationRaw);
-    return new MariaDbChangeEvent(options.getSourceTable(), operation, before, after, position, commitTs, metadata);
+    return new PreflightReport(issues);
   }
 
   @Override
-  protected String eventPosition(MariaDbChangeEvent event) {
-    return event.getPosition();
+  protected void runSession(long attempt) throws Exception {
+    BinaryLogClient localClient = new BinaryLogClient(options.getHost(), options.getPort(), options.getUser(), resolvePassword());
+    localClient.setServerId(options.getServerId());
+    localClient.setKeepAlive(true);
+    localClient.setConnectTimeout((int) options.getConnectTimeoutMs());
+
+    String checkpoint = loadCheckpoint(checkpointKey());
+    if (!checkpoint.isBlank()) {
+      String[] parsed = parseCheckpoint(checkpoint);
+      localClient.setBinlogFilename(parsed[0]);
+      localClient.setBinlogPosition(Long.parseLong(parsed[1]));
+    }
+
+    localClient.registerEventListener(event -> handleEvent(localClient, event));
+
+    client = localClient;
+    transition(dev.henneberger.vertx.replication.core.ReplicationStreamState.RUNNING, null, attempt);
+    completeStart();
+
+    try {
+      localClient.connect();
+    } finally {
+      client = null;
+    }
   }
 
   @Override
-  protected String checkpointKey() {
-    return "mariadb:" + options.getDatabase() + ":" + options.getSourceTable();
+  protected void logStreamFailure(Throwable error) {
+    LOG.error("MariaDB CDC stream failed for database {}", options.getDatabase(), error);
   }
 
   @Override
-  protected Optional<String> loadCheckpoint() throws Exception {
-    return options.getLsnStore().load(checkpointKey());
-  }
-
-  @Override
-  protected void saveCheckpoint(String token) throws Exception {
-    options.getLsnStore().save(checkpointKey(), token);
-  }
-
-  private String resolvePassword() {
-    String password = options.getPassword();
-    if (password == null || password.isBlank()) {
-      String env = options.getPasswordEnv();
-      if (env != null && !env.isBlank()) {
-        password = System.getenv(env);
+  protected void onCloseResources() {
+    BinaryLogClient current = client;
+    client = null;
+    if (current != null) {
+      try {
+        current.disconnect();
+      } catch (Exception ignore) {
       }
     }
-    return password == null ? "" : password;
   }
 
-  private static MariaDbChangeEvent.Operation mapOperation(String op) {
-    String n = op == null ? "" : op.trim().toUpperCase(Locale.ROOT);
-    if (n.startsWith("INS")) {
-      return MariaDbChangeEvent.Operation.INSERT;
+  private void handleEvent(BinaryLogClient localClient, Event event) {
+    if (!shouldRun()) {
+      return;
     }
-    if (n.startsWith("DEL")) {
-      return MariaDbChangeEvent.Operation.DELETE;
-    }
-    return MariaDbChangeEvent.Operation.UPDATE;
-  }
-
-  private static Map<String, Object> parseMap(Object raw) {
-    if (raw == null) {
-      return Collections.emptyMap();
-    }
-    if (raw instanceof Map) {
-      return new LinkedHashMap<>((Map<String, Object>) raw);
-    }
+    EventData data = event.getData();
     try {
-      JsonObject json = raw instanceof JsonObject ? (JsonObject) raw : new JsonObject(String.valueOf(raw));
-      return json.getMap();
-    } catch (Exception ignore) {
-      return Collections.emptyMap();
+      if (data instanceof TableMapEventData) {
+        TableMapEventData t = (TableMapEventData) data;
+        tableRefs.put(t.getTableId(), new TableRef(t.getDatabase(), t.getTable()));
+        return;
+      }
+
+      EventHeaderV4 header = (EventHeaderV4) event.getHeader();
+      if (data instanceof WriteRowsEventData) {
+        WriteRowsEventData wr = (WriteRowsEventData) data;
+        TableRef tableRef = tableRef(wr.getTableId());
+        if (!isTrackedSource(tableRef)) {
+          return;
+        }
+        for (Serializable[] row : wr.getRows()) {
+          emitChange(new MariaDbChangeEvent(
+            tableRef.table,
+            MariaDbChangeEvent.Operation.INSERT,
+            Collections.emptyMap(),
+            rowMap(row),
+            formatCheckpoint(localClient.getBinlogFilename(), header.getNextPosition()),
+            toInstant(header.getTimestamp()),
+            metadata(tableRef, localClient.getBinlogFilename(), header.getNextPosition(), "INSERT")
+          ));
+        }
+      } else if (data instanceof UpdateRowsEventData) {
+        UpdateRowsEventData ur = (UpdateRowsEventData) data;
+        TableRef tableRef = tableRef(ur.getTableId());
+        if (!isTrackedSource(tableRef)) {
+          return;
+        }
+        for (Map.Entry<Serializable[], Serializable[]> entry : ur.getRows()) {
+          emitChange(new MariaDbChangeEvent(
+            tableRef.table,
+            MariaDbChangeEvent.Operation.UPDATE,
+            rowMap(entry.getKey()),
+            rowMap(entry.getValue()),
+            formatCheckpoint(localClient.getBinlogFilename(), header.getNextPosition()),
+            toInstant(header.getTimestamp()),
+            metadata(tableRef, localClient.getBinlogFilename(), header.getNextPosition(), "UPDATE")
+          ));
+        }
+      } else if (data instanceof DeleteRowsEventData) {
+        DeleteRowsEventData dr = (DeleteRowsEventData) data;
+        TableRef tableRef = tableRef(dr.getTableId());
+        if (!isTrackedSource(tableRef)) {
+          return;
+        }
+        for (Serializable[] row : dr.getRows()) {
+          emitChange(new MariaDbChangeEvent(
+            tableRef.table,
+            MariaDbChangeEvent.Operation.DELETE,
+            rowMap(row),
+            Collections.emptyMap(),
+            formatCheckpoint(localClient.getBinlogFilename(), header.getNextPosition()),
+            toInstant(header.getTimestamp()),
+            metadata(tableRef, localClient.getBinlogFilename(), header.getNextPosition(), "DELETE")
+          ));
+        }
+      }
+    } catch (Exception e) {
+      emitParseFailure("binlog-event", e);
+      notifyError(e);
+      try {
+        localClient.disconnect();
+      } catch (Exception ignore) {
+      }
     }
   }
 
-  private static Instant toInstant(Object raw) {
-    if (raw instanceof Instant) {
-      return (Instant) raw;
+  private void emitChange(MariaDbChangeEvent event) throws Exception {
+    dispatchAndAwait(event);
+    emitEventMetric(event);
+
+    String token = event.getPosition();
+    saveCheckpoint(checkpointKey(), token);
+    emitLsnCommitted(checkpointKey(), token);
+  }
+
+  private TableRef tableRef(long tableId) {
+    return tableRefs.getOrDefault(tableId, new TableRef("unknown", "unknown"));
+  }
+
+  private boolean isTrackedSource(TableRef tableRef) {
+    String configured = options.getSourceTable();
+    if (configured == null || configured.isBlank()) {
+      return true;
     }
-    if (raw instanceof Timestamp) {
-      return ((Timestamp) raw).toInstant();
-    }
-    if (raw instanceof Date) {
-      return ((Date) raw).toInstant();
-    }
-    try {
-      return Instant.parse(String.valueOf(raw));
-    } catch (Exception ignore) {
+    String full = tableRef.database + "." + tableRef.table;
+    return configured.equalsIgnoreCase(tableRef.table) || configured.equalsIgnoreCase(full);
+  }
+
+  private static Map<String, Object> metadata(TableRef tableRef, String binlogFile, long binlogPosition, String op) {
+    Map<String, Object> out = new LinkedHashMap<>();
+    out.put("adapter", "mariadb");
+    out.put("database", tableRef.database);
+    out.put("table", tableRef.table);
+    out.put("fullTable", tableRef.database + "." + tableRef.table);
+    out.put("binlogFile", binlogFile);
+    out.put("binlogPosition", binlogPosition);
+    out.put("rawOperation", op);
+    return out;
+  }
+
+  private static Instant toInstant(long headerTimestamp) {
+    if (headerTimestamp <= 0) {
       return null;
     }
+    return Instant.ofEpochMilli(headerTimestamp);
+  }
+
+  private static Map<String, Object> rowMap(Serializable[] row) {
+    Map<String, Object> out = new LinkedHashMap<>();
+    for (int i = 0; i < row.length; i++) {
+      out.put("c" + i, normalizeValue(row[i]));
+    }
+    return out;
   }
 
   private static Object normalizeValue(Object value) {
@@ -229,33 +342,69 @@ public class MariaDbLogicalReplicationStream extends AbstractJdbcPollingReplicat
     if (value instanceof LocalTime) {
       return ((LocalTime) value).toString();
     }
-    if (value instanceof java.sql.Array) {
-      try {
-        Object arr = ((java.sql.Array) value).getArray();
-        if (arr instanceof Object[]) {
-          Object[] vals = (Object[]) arr;
-          List<Object> out = new ArrayList<>(vals.length);
-          for (Object item : vals) {
-            out.add(normalizeValue(item));
-          }
-          return out;
-        }
-      } catch (Exception ignore) {
-      }
+    if (value instanceof byte[]) {
+      return new String((byte[]) value);
     }
     return value;
   }
 
-  private static String asString(Object value) {
-    return value == null ? "" : String.valueOf(value);
+  private String checkpointKey() {
+    return "mariadb:" + options.getDatabase();
   }
 
-  private static Map<String, Object> extractRow(ResultSet rs) throws Exception {
-    ResultSetMetaData md = rs.getMetaData();
-    Map<String, Object> out = new LinkedHashMap<>();
-    for (int i = 1; i <= md.getColumnCount(); i++) {
-      out.put(md.getColumnLabel(i), normalizeValue(rs.getObject(i)));
+  static String formatCheckpoint(String file, long pos) {
+    if (file == null || file.isBlank()) {
+      return "";
     }
-    return out;
+    return file + ':' + pos;
+  }
+
+  static String[] parseCheckpoint(String checkpoint) {
+    if (checkpoint == null || checkpoint.isBlank()) {
+      return new String[] {"", "4"};
+    }
+    int idx = checkpoint.lastIndexOf(':');
+    if (idx < 0) {
+      return new String[] {checkpoint, "4"};
+    }
+    return new String[] {checkpoint.substring(0, idx), checkpoint.substring(idx + 1)};
+  }
+
+  private Connection openConnection() throws SQLException {
+    String jdbc = "jdbc:mariadb://" + options.getHost() + ':' + options.getPort() + '/' + options.getDatabase();
+    return DriverManager.getConnection(jdbc, options.getUser(), resolvePassword());
+  }
+
+  private String readVariable(Connection conn, String name) throws SQLException {
+    try (PreparedStatement statement = conn.prepareStatement("SHOW VARIABLES LIKE ?")) {
+      statement.setString(1, name);
+      try (ResultSet rs = statement.executeQuery()) {
+        if (rs.next()) {
+          return rs.getString(2);
+        }
+        return "";
+      }
+    }
+  }
+
+  private String resolvePassword() {
+    String password = options.getPassword();
+    if (password == null || password.isBlank()) {
+      String env = options.getPasswordEnv();
+      if (env != null && !env.isBlank()) {
+        password = System.getenv(env);
+      }
+    }
+    return password == null ? "" : password;
+  }
+
+  private static final class TableRef {
+    private final String database;
+    private final String table;
+
+    private TableRef(String database, String table) {
+      this.database = database;
+      this.table = table;
+    }
   }
 }

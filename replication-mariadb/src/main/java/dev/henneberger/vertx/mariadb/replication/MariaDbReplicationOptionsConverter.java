@@ -15,6 +15,8 @@ final class MariaDbReplicationOptionsConverter {
     if (json.containsKey("user")) options.setUser(json.getString("user"));
     if (json.containsKey("password")) options.setPassword(json.getString("password"));
     if (json.containsKey("passwordEnv")) options.setPasswordEnv(json.getString("passwordEnv"));
+    if (json.containsKey("serverId")) options.setServerId(json.getLong("serverId"));
+    if (json.containsKey("connectTimeoutMs")) options.setConnectTimeoutMs(json.getLong("connectTimeoutMs"));
     if (json.containsKey("sourceTable")) options.setSourceTable(json.getString("sourceTable"));
     if (json.containsKey("positionColumn")) options.setPositionColumn(json.getString("positionColumn"));
     if (json.containsKey("operationColumn")) options.setOperationColumn(json.getString("operationColumn"));
@@ -46,6 +48,8 @@ final class MariaDbReplicationOptionsConverter {
     json.put("user", options.getUser());
     json.put("password", options.getPassword());
     json.put("passwordEnv", options.getPasswordEnv());
+    json.put("serverId", options.getServerId());
+    json.put("connectTimeoutMs", options.getConnectTimeoutMs());
     json.put("sourceTable", options.getSourceTable());
     json.put("positionColumn", options.getPositionColumn());
     json.put("operationColumn", options.getOperationColumn());

@@ -45,9 +45,9 @@ Support by connector:
 
 - PostgreSQL (`replication-postgres`): *True CDC / logical replication* via PostgreSQL logical decoding (`wal2json` and `pgoutput`).
 - MySQL (`replication-mysql`): *True CDC / log-based capture* via MySQL binlog streaming.
+- MariaDB (`replication-mariadb`): *True CDC / log-based capture* via MariaDB binlog streaming.
 - MongoDB (`replication-mongodb`): *True CDC / native change streams* via `watch()`.
 - SQL Server (`replication-sqlserver`): *Polling CDC adapter* over SQL Server CDC tables/functions.
-- MariaDB (`replication-mariadb`): *Polling CDC adapter* (JDBC polling model).
 - CockroachDB (`replication-cockroachdb`): *Polling CDC adapter* (JDBC polling model).
 - Oracle (`replication-oracle`): *Polling CDC adapter* (JDBC polling model).
 - Db2 (`replication-db2`): *Polling CDC adapter* (JDBC polling model).

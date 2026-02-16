@@ -8,7 +8,7 @@ This manual uses PostgreSQL as the full walkthrough and lists all supported conn
 * PostgreSQL logical replication (`wal2json`, `pgoutput`)
 * SQL Server CDC polling
 * MySQL binlog CDC
-* MariaDB CDC adapter (currently polling)
+* MariaDB binlog CDC
 * CockroachDB CDC adapter (currently polling)
 * Oracle CDC adapter (currently polling)
 * Db2 CDC adapter (currently polling)
@@ -67,9 +67,9 @@ If you are using Maven, add the dependency for the connector you need:
 
 | MariaDB
 | `vertx-mariadb-cdc-replication`
-| `POLLING`
-| Polling CDC
-| Supported. Polling adapter today; planned migration to binlog stream mode.
+| `LOG_STREAM`
+| True log-stream
+| Supported. Uses MariaDB binlog stream semantics.
 
 | CockroachDB
 | `vertx-cockroachdb-cdc-replication`

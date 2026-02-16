@@ -34,6 +34,11 @@
       <version>${mariadb.jdbc.version}</version>
     </dependency>
     <dependency>
+      <groupId>com.github.shyiko</groupId>
+      <artifactId>mysql-binlog-connector-java</artifactId>
+      <version>${mysql.binlog.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>${slf4j.version}</version>

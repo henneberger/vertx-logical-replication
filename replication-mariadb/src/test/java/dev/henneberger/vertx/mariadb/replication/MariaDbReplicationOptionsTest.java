@@ -17,6 +17,8 @@ class MariaDbReplicationOptionsTest {
       .put("database", "app")
       .put("user", "replicator")
       .put("passwordEnv", "MARIADB_PASSWORD")
+      .put("serverId", 22334L)
+      .put("connectTimeoutMs", 12000L)
       .put("sourceTable", "cdc_orders")
       .put("positionColumn", "position")
       .put("operationColumn", "operation")
@@ -29,12 +31,15 @@ class MariaDbReplicationOptionsTest {
 
     assertEquals("mariadb.internal", options.getHost());
     assertEquals(13306, options.getPort());
+    assertEquals(22334L, options.getServerId());
+    assertEquals(12000L, options.getConnectTimeoutMs());
     assertEquals("cdc_orders", options.getSourceTable());
     assertEquals(750, options.getPollIntervalMs());
     assertEquals(250, options.getBatchSize());
 
     JsonObject json = options.toJson();
     assertEquals("mariadb.internal", json.getString("host"));
+    assertEquals(22334L, json.getLong("serverId"));
     assertEquals(2, json.getInteger("maxConcurrentDispatch"));
   }
 
