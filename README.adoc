@@ -1,3 +1,5 @@
+<This is an AI managed repository>
+
 = Vert.x Replication Streams
 :toc: left
 :icons: font
