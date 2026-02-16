@@ -160,6 +160,31 @@ Use this sequence in production:
 * `FileLsnStore` for durable JSON-file persistence.
 * `PrefixedLsnStore` to namespace keys over any existing store.
 
+Default behavior and production guidance:
+
+* Most connectors default to `NoopLsnStore`, which means checkpoints are not persisted.
+* With `NoopLsnStore`, restarts resume from connector-specific defaults instead of the last committed checkpoint.
+* For production, configure a durable store (`FileLsnStore` or a custom persistent implementation).
+
+Example (durable file-backed checkpoints with namespaced keys):
+
+[source,java]
+----
+LsnStore lsnStore = new PrefixedLsnStore(
+  new FileLsnStore(Paths.get("var/checkpoints/replication-lsn.json")),
+  "prod:"
+);
+
+PostgresReplicationOptions options = new PostgresReplicationOptions()
+  .setHost("localhost")
+  .setPort(5432)
+  .setDatabase("app")
+  .setUser("app")
+  .setPassword("secret")
+  .setSlotName("vertx_app_slot")
+  .setLsnStore(lsnStore);
+----
+
 include::postgresql.adoc[]
 
 == Connector-specific caveats
